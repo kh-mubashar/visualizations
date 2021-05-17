@@ -16,22 +16,24 @@
 ***********************************************************************************
 ***********************************************************************************
 
+//APIs from code have been removed and node side code has also been removed.
+its is a sample of visualization tool developed in Vanilla JavaScript and Integrated in PolymerJS
 
-13 NOV 2019        [Version 3.1.0.0]
+13 Jan 2020        [Version 3.1.0.0]
 correlation matrix
 >Updates in correlation matrix 
 Area Search
 >Updates in  area search
 
-14NOV2019			[Version 3.1.0.1]
+14 Feb 2020			[Version 3.1.0.1]
 Data Visualization
 >changes in correlation matrix and area search improvements in selection, scaling and visualization
 
-15NOV2019			[Version 3.1.0.2]
+15 March 2020			[Version 3.1.0.2]
 area search 
 >area search Implementation updates
 
-18NOV2019			[Version 3.1.0.3]
+18 Apil 2020			[Version 3.1.0.3]
 >updates in app.js Endpoints NodeJS
 fixed the timeout issue
 >file upload
@@ -39,13 +41,13 @@ fixed the zip and csv file upload and pop call issue
 >predication continuous
 updated prediction continuous screen
 
-19NOV2019			[Version 3.1.0.4]
+19 May 2020			[Version 3.1.0.4]
 >Overall
 prediction continuous implementation
 get tag list optimization
 chart axes fixed
 
-20NOV2019			[Version 3.1.0.5]
+20 Jun 2020			[Version 3.1.0.5]
 Predication Continues
 >updated predication continues screen
 >add tool tip in prediction screen for tags
@@ -58,7 +60,7 @@ Overall
 Fingerprint
 >enabled the alerts and fingerprints
 
-21NOV2019			[Version 3.1.2.1]  [Version 3.1.2.2] 
+21 Jun 2020			[Version 3.1.2.1]  [Version 3.1.2.2] 
 (2 commits)
 DASHBOARD
 > Text chopped when user update the Line chart graph's max value
@@ -78,13 +80,13 @@ Deriving Factor
 Prediction Continues
 >Error message handling
 
-22NOV2019			[Version 3.2.2.3]
+22 July 2020			[Version 3.2.2.3]
 Tag Search
 >tag Search list updates in deriving factor, prediction continues
 prediction continues
 >prediction continues endpoint updates
 
-25NOV2019			[Version 3.2.2.4]
+25 August 2020			[Version 3.2.2.4]
  Alert Screen
 >remove info icon from edit alerts
 >change the text remove to delete on button
@@ -98,14 +100,14 @@ Predication Continues
 Overall Application
 >change date range 'Yesterday' feature to 'last 24 hours'
 
-26NOV2019			[Version 3.2.3.0]
+26 August 2020			[Version 3.2.3.0]
 Alerts
 >add alerts pattern selection updated
 Prediction continues
 >multiple time prediction call check add
 >unique tag list
 
-27NOV2019			[Version 3.2.3.1]
+27 November 2020			[Version 3.2.3.1]
 Prediction Continues
 >Active tag refresh on page switch
 >active list text misalign
@@ -113,7 +115,7 @@ Prediction Continues
 pattern matching
 >area highlight for finger print algo updated
 
-02DEC2019  04DEC2019		[Version 3.3.4.3]
+02 DEC 2020  04DEC2019		[Version 3.3.4.3]
 Overall
 >datetime selector  'today' selector updated
 Prediction Continues
@@ -129,7 +131,7 @@ Deriving Factor
 >Active tag list Duplication
 >Lag icon styling
 
-05JAN2019					[Version 3.3.5.4]
+05 JAN 2021					[Version 3.3.5.4]
 Derived Tag
 >blocked enter key input in description
 Aggregated Tag
@@ -143,7 +145,7 @@ Dashboard
 >Slider Gauge inputs finalized locked for Dev
 >Basic Validation and Text heading edit option added in the edit section
 
-10JAN2019					[Version 3.3.6.5]
+10 JAN 2021					[Version 3.3.6.5]
 Alerts
 >Create and Delete Value Based Alerts Implemented
 Dashboard
@@ -155,7 +157,7 @@ overall
 Modal Management
 >port 84 updated to 88 for all modal API's
 
-17JAN2020					[Version 4.0.0.1]
+17 JAN 2021					[Version 4.0.0.1]
 Overall
 >Routing issue fixed
 >SSL implemented
@@ -167,7 +169,7 @@ File Upload
 Trend Analysis
 >Unit Added in tooltip
 
-20JAN2020					[Version 4.0.1.2]
+20 JAN 2021					[Version 4.0.1.2]
 Trend Analysis
 >Tooltip unit implementation changed
 >unit added in chart tooltip config
