@@ -1,0 +1,32 @@
+<link rel="import" href="../../../bower_components/polymer/polymer.html"/>
+<dom-module id="btn-operator">
+  <template>
+    <style></style>
+    <div class="form-group mt-4" on-click="_showOperator">
+      <template is="dom-if" if="[[!operatorShown]]">
+        <i class="fas fa-plus-circle form-icon"></i>
+      </template>
+      <template is="dom-if" if="[[operatorShown]]">
+        <i class="fas fa-minus-circle form-icon"></i>
+      </template>
+      <span class="p-1 font-weight-bold cursor-pointer">Apply operator</span>
+    </div>
+
+  </template>
+
+  <script>
+    Polymer({
+      is: 'btn-operator',
+      properties: {
+        operatorShown: {
+          type: Boolean,
+          value: false,
+          notify: true
+        }
+      },
+      _showOperator() {
+        this.operatorShown = !this.operatorShown
+      }
+    })
+  </script>
+</dom-module>

@@ -1,0 +1,67 @@
+<link rel="import" href="../../../bower_components/polymer/polymer.html"/>
+<dom-module id="form-warning">
+  <template>
+    <style></style>
+    <template is="dom-if" if="[[isVisible]]" restamp>
+      <div style="z-index: 10" class="alert alert-info mb-0 alert-dismissible fade show mb-2" role="alert">
+        <button type="button" class="close" data-dismiss="alert" on-click="_hide" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <template is="dom-if" if="[[_isArray(message)]]" restamp>
+          <template is="dom-repeat" items="{{message}}">
+            <span>[[item]]</span><br>
+          </template>
+        </template>
+        <template is="dom-if" if="[[!_isArray(message)]]" restamp>
+          <span>[[message]]</span>
+        </template>
+      </div>
+    </template>
+
+  </template>
+
+  <script>
+    Polymer({
+      is: 'form-warning',
+      properties: {
+        message: {
+          value: '',
+          observer: '_onChange',
+          notify: true
+        },
+        isVisible: {
+          type: Boolean,
+          value: false
+        },
+        hideDelay:{
+          type: Number,
+          value: 5000
+        }
+      },
+
+      _onChange(newVal) {
+        if (newVal.length !== 0) {
+          if (this.handler) {
+            this.cancelAsync(this.handler)
+          }
+          this._show()
+          this.handler = this.async(function () {
+            this._hide()
+          }, this.hideDelay)
+        }
+      },
+      _isArray(data) {
+        return Array.isArray(data)
+      },
+
+      _show() {
+        this.isVisible = true
+      },
+
+      _hide() {
+        this.isVisible = false
+        this.message = ''
+      }
+    })
+  </script>
+</dom-module>

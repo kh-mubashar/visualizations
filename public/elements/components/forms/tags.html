@@ -1,0 +1,126 @@
+<link rel="import" href="../../../bower_components/polymer/polymer.html"/>
+<dom-module id="tags-form">
+  <template>
+    <style>
+        ::content .min-width-50 {
+            min-width: 50%;
+        }
+    </style>
+    <template is="dom-repeat" items="{{tags}}" as="tag" restamp>
+      <div class="form-group mb-4">
+        <div class="d-flex mb-2">
+          <input
+            id="categoryTag[[index]]"
+            name="categoryTag[[index]]"
+            list="tagListDropdown"
+            class="form-control min-width-50"
+            placeholder="Search/Add Tags"
+            autocomplete="off"
+            data-index$="[[index]]"
+            value$="[[tag.tag]]"
+            on-change="_changeTag"
+            required/>
+
+          <select
+            class="form-control ml-2"
+            placeholder="Plot type"
+            autocomplete="off"
+            value="{{tag.type}}"
+            data-index$="[[index]]"
+            on-change="_changeTagType"
+            required>
+            <template is="dom-repeat" items="{{plotTypes}}" as="item" restamp>
+              <option selected$="{{_tagSelected(tag, item.value)}}" value="[[item.value]]">
+                [[item.name]]
+              </option>
+            </template>
+          </select>
+          <template is="dom-if" if="[[_showRemove(tags.length)]]">
+            <i data-index$="[[index]]"
+               class="fas fa-times-circle text-dark p-2 mb-1 cursor-pointer"
+               title="Remove tag"
+               on-click="_removeCategory">
+            </i>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <div class="form-group cursor-pointer d-inline-block" on-click="_incrTags">
+      <i class="fas fa-plus-circle form-icon"></i>
+      <span class="p-1">Add tag</span>
+    </div>
+
+    <datalist id="tagListDropdown" restamp>
+      <template is="dom-repeat" items="{{tagList}}" as="item" restamp>
+        <option value="[[item.tag_name]]">[[item.description]]</option>
+      </template>
+    </datalist>
+
+  </template>
+
+  <script>
+    Polymer({
+      is: 'tags-form',
+      properties: {
+        tags: {
+          type: Array,
+          value: [],
+        },
+        tagList: {
+          type: Array,
+          value: []
+        },
+        plotTypes: {
+          type: Array,
+          value: [
+            {
+              name: 'Line',
+              value: 'line'
+            },
+            {
+              name: 'Clustered Column',
+              value: 'column'
+            }
+          ]
+        },
+      },
+      _changeTagType(e) {
+        const {dataset: {index}, value} = e.target
+        this.set(`tags.${index}.type`, value)
+        this._updateTags()
+      },
+      _tagSelected(tag, value) {
+        return tag.type === value
+      },
+      _changeTag(e) {
+        const {dataset: {index}, value} = e.target
+        this.set(`tags.${index}.tag`, value)
+        this._updateTags()
+      },
+      _incrTags() {
+        if (this._isInvalid()) return
+        this.push('tags', {tag: '', type: 'line'})
+        this._updateTags()
+      },
+      _isInvalid() {
+        this.fire('validate')
+        return _.some(this.tags, item => {
+          const tag = _.get(item, 'tag')
+          return _.isEmpty(tag)
+        })
+      },
+      _showRemove(len) {
+        return len > 1
+      },
+      _removeCategory(e) {
+        const {dataset: {index}} = e.currentTarget
+        this.splice('tags', index, 1)
+        this._updateTags()
+      },
+      _updateTags() {
+        this.fire('change-tags', _.cloneDeep(this.tags))
+      }
+    })
+  </script>
+</dom-module>

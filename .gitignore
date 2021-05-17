@@ -1,0 +1,15 @@
+node_modules
+package-lock.json
+build/
+build
+npm-debug.log
+*.log
+.DS_Store
+temp
+.github/
+.vscode/
+server/
+server
+js/
+js
+

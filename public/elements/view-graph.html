@@ -1,0 +1,1231 @@
+<link rel="import" href="../bower_components/polymer/polymer.html"/>
+<link rel="import" href="../elements/components/chart-filters.html"/>
+<link rel="import" href="../elements/components/chart-graph.html"/>
+<link rel="import" href="../bower_components/iron-collapse/iron-collapse.html"/>
+<link rel="import" href="../elements/components/forms/form-warning.html"/>
+<link rel="import" href="../elements/components/chart-save.html"/>
+
+<script src="../bower_components/axios/dist/axios.js"></script>
+<script src="../bower_components/lodash/lodash.js"></script>
+<script src="../js/zipcelx.js"></script>
+<script src="../js/jspdf.umd.min.js"></script>
+<script src="../js/charts/constants.js"></script>
+<script src="../js/charts/helpers.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/charts/pie.js"></script>
+<script src="../js/charts/scatter.js"></script>
+<script src="../js/charts/column.js"></script>
+<script src="../js/charts/stacked_column.js"></script>
+<script src="../js/charts/combo_column.js"></script>
+<script src="../js/charts/bar.js"></script>
+<script src="../js/charts/wind_rose.js"></script>
+<script src="../js/charts/radar.js"></script>
+<script src="../js/charts/box_whisker.js"></script>
+<script src="../js/charts/waterfall.js"></script>
+
+
+<dom-module id="view-graph">
+  <template>
+    <style>
+
+        .nav-link.active {
+            background: #dee2e6;
+        }
+
+        ::content .graph-container {
+            overflow-y: auto;
+            background: #dee2e6;
+        }
+
+        @media (max-width: 575.98px) {
+            ::content .graph-container {
+                width: 100% !important;
+            }
+        }
+
+        @media (max-width: 1199.98px) {
+            ::content .graph-container {
+                width: 340px !important;
+            }
+        }
+
+        #graphsContainer {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            width: 100%;
+            /*height: 80vh;*/
+        }
+
+        .graph-container {
+            flex-basis: 25%;
+        }
+
+        .graph-container + main {
+            flex-basis: 75%;
+        }
+
+        .chart-container {
+            width: 100%;
+        }
+
+        .chart-filters-container .chart-filters-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0 0 0.5rem 0;
+            padding: 5px 10px;
+            background-color: #eaeaea;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .chart-filters-container .chart-filters-title > div {
+            display: flex;
+            overflow: hidden;
+        }
+
+        .chart-filters-container .chart-filters-title span {
+            display: inline-block;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .btn-add-chart {
+            cursor: pointer;
+        }
+
+        chart-graph {
+            width: calc(50% - 10px);
+            min-height: calc(50vh - 90px);
+            padding: 5px;
+            margin: 5px;
+            border: 1px solid #e6e3e8;
+            border-radius: 2px;
+            -webkit-box-shadow: 0px 3px 5px 0px rgba(0, 0, 0, 0.19);
+            -moz-box-shadow: 0px 3px 5px 0px rgba(0, 0, 0, 0.19);
+            box-shadow: 0px 3px 5px 0px rgba(0, 0, 0, 0.19);
+            overflow: hidden;
+        }
+
+        chart-graph.active {
+            border: 2px solid #afafaf;
+        }
+
+        chart-graph.only-one {
+            width: calc(100% - 10px);
+            min-height: 600px;
+            border: 1px solid #e6e3e8 !important;
+        }
+
+        chart-graph.more-two-charts {
+            height: calc(50vh - 90px);
+            min-height: 320px;
+        }
+
+        ::content .btn-export {
+            margin-right: 10px;
+            position: relative;
+            margin-top: -3px;
+            line-height: 31px;
+        }
+
+        ::content .btn-export:hover {
+            cursor: pointer;
+        }
+
+        ::content .btn-export::after {
+            content: '';
+            position: absolute;
+            bottom: 7px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: #212529;
+        }
+
+        ::content #modal-export-chart .modal-body {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            justify-content: space-between;
+        }
+
+        ::content .btn-chart-export {
+            cursor: pointer;
+            width: 62px;
+            height: 62px;
+        }
+
+        ::content .btn-chart-export img {
+            width: 100%;
+            height: 100%;
+        }
+
+        ::content #modal-export-chart .modal-dialog {
+            max-width: 360px;
+        }
+
+        ::content #modal-export-chart .modal-header {
+            padding: 0.5rem 1rem;
+        }
+
+        .custom-checkbox {
+            position: relative;
+        }
+
+        .custom-checkbox input {
+            visibility: hidden;
+            margin-right: 8px;
+        }
+
+        .custom-checkbox-switcher {
+            position: relative;
+            margin-bottom: 0;
+            vertical-align: top;
+        }
+
+        .custom-checkbox-switcher::before {
+            position: absolute;
+            top: .25rem;
+            display: block;
+            height: 1rem;
+            content: "";
+            background-color: #fff;
+            border: #adb5bd solid 1px;
+            left: -2.25rem;
+            width: 1.75rem;
+            pointer-events: all;
+            border-radius: .5rem;
+        }
+
+        .custom-checkbox-switcher::after {
+            position: absolute;
+            display: block;
+            content: "";
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: 50% 50%;
+            top: calc(.25rem + 2px);
+            left: calc(-2.25rem + 2px);
+            width: calc(1rem - 4px);
+            height: calc(1rem - 4px);
+            background-color: #adb5bd;
+            border-radius: .5rem;
+            transition: transform .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out, -webkit-transform .15s ease-in-out;
+        }
+
+        .custom-checkbox input:checked + .custom-checkbox-switcher::before {
+            color: #fff;
+            background-color: #007bff;
+            border-color: #007bff;
+            left: -2.25rem;
+            width: 1.75rem;
+            pointer-events: all;
+            border-radius: .5rem;
+        }
+
+        .custom-checkbox input:checked + .custom-checkbox-switcher::after {
+            background-color: #fff;
+            transform: translateX(.75rem);
+            top: calc(.25rem + 2px);
+            left: calc(-2.25rem + 2px);
+            width: calc(1rem - 4px);
+            height: calc(1rem - 4px);
+            border-radius: .5rem;
+        }
+
+        .btn-export-wrapper {
+            padding-left: 180px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .menu-container {
+            overflow-x: hidden;
+            /*transition: all .3s ease-in-out;*/
+            position: relative;
+            /*min-width: 25%;*/
+            min-width: 374px;
+            flex-basis: 374px;
+        }
+
+        .menu-container form {
+            min-width: 200px;
+        }
+
+        .menu-container .collapse-menu-btn {
+            position: absolute;
+            right: 4px;
+            top: 4px;
+            cursor: pointer;
+            height: 40px;
+            width: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9;
+            /*transition: transform .3s ease-in-out;*/
+        }
+
+        .menu-container.collapsed {
+            width: 50px !important;
+            flex-basis: 50px !important;
+            min-width: 50px;
+        }
+
+        .menu-container.collapsed .collapse-menu-btn {
+            transform: rotate(180deg);
+        }
+
+        .menu-container.collapsed .menu-container-inner {
+            overflow: hidden;
+        }
+
+        .menu-container.collapsed > .menu-container-inner > div {
+            opacity: 0;
+        }
+
+        .charts-graph-list-wrapper {
+            margin-left: -1rem;
+            margin-right: -1rem;
+        }
+        .container-loader {
+            position: relative;
+        }
+        .container-loader:before {
+            content: '';
+            display: block;
+            background-color: rgba(255, 255, 255, 0.9);
+            height: 100%;
+            width: 100%;
+            left: 0;
+            top: 0;
+            text-align: center;
+            position: absolute;
+            z-index: 1;
+
+        }
+        .container-loader:after {
+            content: '';
+            display: block;
+            width: 40px;
+            height: 40px;
+            font-size: 2px;
+            text-indent: -9999em;
+            border-top: 1em solid #e5edfa;
+            border-right: 1em solid #e5edfa;
+            border-bottom: 1em solid #e5edfa;
+            border-left: 1em solid #0055cc;
+            border-radius: 50%;
+            position: absolute;
+            left: calc(50% - 20px);
+            top: calc(50% - 20px);
+            z-index: 1;
+            -webkit-animation: spinner-animation 1.1s infinite linear;
+            -moz-animation: spinner-animation 1.1s infinite linear;
+            -ms-animation: spinner-animation 1.1s infinite linear;
+            -o-animation: spinner-animation 1.1s infinite linear;
+            animation: spinner-animation 1.1s infinite linear;
+        }
+
+        .fa-info-circle {
+            margin-right: 40px;
+            outline-color: transparent;
+            text-decoration: none;
+            color: #343a40;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+    </style>
+    <div class="container-fluid h-100 container-with-sidebar overflow-hidden">
+      <div class="d-flex h-100">
+        <nav class="bg-light sidebar position-fixed h-100 text-center border-right">
+          <ul class="nav flex-column">
+            <li class="nav-item">
+              <a class="nav-link text-dark px-4 py-3"
+                 href="#/trend-analysis/tag-search"
+                 on-tap="_toggleSearch"
+                 data-toggle="tooltip"
+                 data-placement="right"
+                 title="Trend Analysis">
+                <i class="fas fa-tag"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-dark px-4 py-3"
+                 href="#/trend-analysis/value-based-search"
+                 data-toggle="tooltip"
+                 data-placement="right"
+                 title="Value-Based Search">
+                <i class="fas fa-search"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-dark px-4 py-3"
+                 href="#/trend-analysis/pattern-recognition"
+                 data-toggle="tooltip"
+                 data-placement="right"
+                 title="Pattern Recognition">
+                <i class="fas fa-chart-line"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-dark px-4 py-3"
+                 href="#/trend-analysis/correlation-matrix"
+                 data-toggle="tooltip"
+                 data-placement="right"
+                 title="Correlation Matrix">
+                <i class="fas fa-ruler-combined"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-dark px-4 py-3"
+                 href="#/trend-analysis/driving-factors"
+                 data-toggle="tooltip"
+                 data-placement="right"
+                 title="Driving Factors">
+                <i class="fas fa-file-contract"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-dark px-4 py-3"
+                 href="#/trend-analysis/work-organizer"
+                 data-toggle="tooltip"
+                 data-placement="right"
+                 title="Work Organizer">
+                <i class="fas fa-tasks"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-dark px-4 py-3"
+                 href="#/trend-analysis/prediction"
+                 data-toggle="tooltip"
+                 data-placement="right"
+                 title="Prediction">
+                <i class="fab fa-hubspot"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-dark px-4 py-3 active"
+                 href="#/trend-analysis/chart"
+                 data-toggle="tooltip"
+                 data-placement="right"
+                 title="Charts">
+                <i class="far fa-chart-bar"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-dark px-4 py-3"
+                 href="#/trend-analysis/statistical-analysis"
+                 data-toggle="tooltip"
+                 data-placement="right"
+                 title="Statistical Analysis">
+                <i class="far fa-file-alt"></i>
+              </a>
+            </li>
+          </ul>
+        </nav>
+        <div class$="{{_getMenuRootClassName(isMenuCollapsed)}}">
+          <div class="collapse-menu-btn" on-click="_toggleMenu"><i class="fas fa-chevron-left"></i></div>
+          <div class="menu-container-inner flex-column px-2 h-100 border-right">
+            <div class="pt-2 pb-2">
+              <div class="lead pb-2 d-flex justify-content-between border-bottom border-light mb-2">
+                <strong>Charts</strong>
+                <a
+                  class="tip-popover"
+                  href="JavaScript:(0);"
+                  data-toggle="popover"
+                  data-placement="bottom"
+                  on-click="_gtagEventInfo"
+                  data-trigger="focus"
+                  data-html="true"
+                  data-content="<ul class='pl-3 mb-0'><li><b>Chart type:</b> Select the chart type from the drop down menu.</li><li><b>Search Range:</b> Select the time range for the chart.</li></ul>"
+                >
+                  <i class="fas fa-info-circle"></i>
+                </a>
+              </div>
+              <!--      FILTERS LIST   -->
+              <template is="dom-repeat" items="{{charts}}" as="filter" index-as="filter_index">
+                <div class="chart-filters-container">
+                  <template is="dom-if" if="[[_isTitleVisible(charts.length)]]">
+                    <div class="chart-filters-title" data-index$="[[filter_index]]" on-click="_toggleChartFilters">
+                      <template is="dom-if" if="[[!filter.editable]]">
+                        <div>
+                          <i data-index$="[[filter_index]]"
+                             class="float-left fas fa-edit text-dark pt-1 mr-2"
+                             on-click="_editModeChartTitle">
+                          </i>
+                          <span>[[filter.name]]</span>
+                        </div>
+                      </template>
+                      <template is="dom-if" if="[[filter.editable]]">
+                        <div class="w-100 mr-2">
+                          <input
+                            class="w-100"
+                            type="text"
+                            value="[[filter.name]]"
+                            maxlength="30"
+                            data-index$="[[filter_index]]"
+                            on-click="_stopEvent"
+                            on-change="_changeChartTitle"
+                            on-blur="_titleOutFocus"
+                          />
+                        </div>
+                      </template>
+                      <template is="dom-if" if="[[_getChartsLen(charts.length)]]">
+                        <i data-index$="[[filter_index]]"
+                           class="float-right fas fa-times-circle text-dark"
+                           on-click="_removeChart">
+                        </i>
+                      </template>
+                    </div>
+                  </template>
+                  <iron-collapse opened="[[filter.isOpen]]">
+                    <chart-filters
+                      tags-list="[[tagsList]]"
+                      idx="[[filter_index]]"
+                      init-params="[[filter.initParams]]"
+                      total="[[charts.length]]"
+                      is-rendering="[[filter.isRendering]]"
+                      on-change-selected="_onChangeSelected"
+                      on-change-filters="_setWoRecord"
+                      on-generate="_generateChart"
+                    >
+                    </chart-filters>
+                  </iron-collapse>
+                </div>
+              </template>
+              <template is="dom-if" if="[[_isAddChartAvailable]]" restamp>
+                <div class="btn-add-chart mt-3 d-inline-block" on-click="_addNewChart">
+                  <i class="fas fa-plus-circle form-icon"></i>
+                  <span class="pl-2">Add New Chart</span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+        <main role="main" class="d-flex flex-column pt-3 pl-3 pr-3 bg-white pb-0 flex-grow-1">
+          <!--      MAIN HEADER FOR CHARTS LIST   -->
+          <div>
+            <form-warning message="{{warning}}"></form-warning>
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn-organizer btn btn-primary btn-sm" on-click="_showSaveChart">
+                <i class="fas fa-bookmark style-scope view-trend-analysis"></i>
+                Work Organizer
+              </button>
+              <template is="dom-if" if="[[_isVisibleCategoryTimeSwitcher]]">
+                <div class="mr-auto ml-auto">
+                  <span class="mr-4">Category</span>
+                  <label class="custom-checkbox">
+                    <input type="checkbox" checked="{{_categoryTimeSwitcher}}"
+                           on-change="_onChangeCategoryTimeSwitcher">
+                    <span class="custom-checkbox-switcher"></span>
+                  </label>
+                  <span>Time</span>
+                </div>
+              </template>
+              <!-- Button trigger export modal -->
+              <div class="btn-export-wrapper">
+                <template is="dom-if" if="[[_isGlobalExportVisible]]">
+                  <div class="btn-export" data-toggle="modal" data-target="#modal-export-chart" on-click="_checkCharts">
+                    <i class="fas fa-arrow-down"></i>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+          <!--      CHARTS LIST   -->
+          <div class="charts-graph-list-wrapper d-flex flex-wrap flex-grow-1 overflow-auto">
+            <div class="charts-graph-list d-flex flex-wrap flex-grow-1 mr-3 ml-3">
+              <template is="dom-repeat" items="{{charts}}" as="chart" index-as="chart_index">
+                <chart-graph
+                  idx="[[chart_index]]"
+                  options="[[chart.options]]"
+                  total="[[charts.length]]"
+                  chart-title="[[chart.name]]"
+                  on-render-start="_onRenderStart"
+                  on-render-finish="_onRenderFinish"
+                  wo-record="[[_woRecord]]"
+                  on-warning="_showWarning"
+                  selected-chart="[[chart.filters.selectedChart]]"
+                  on-change-headers="_setWoRecord"
+                  class$="[[_getChartClass(charts.length, chart_index, expandedChart, chart.isOpen)]]"
+                  total-charts="{{charts.length}}"
+                  on-expand-chart="_expandChart"
+                  expanded$="{{_isExpanded(chart_index, expandedChart)}}"
+                  render-trigger="{{renderTrigger}}"
+                >
+                </chart-graph>
+              </template>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+    <!-- Chart global export modal -->
+    <div class="modal fade" id="modal-export-chart" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Save As</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="btn-chart-export" on-click="_exportToXls">
+              <img src="../images/icons/excel.svg" title="Export Excel" alt="Export Excel">
+            </div>
+            <div class="btn-chart-export" on-click="_exportToPng">
+              <img src="../images/icons/photo.png" title="Export Image" alt="Export Image">
+            </div>
+            <div class="btn-chart-export" on-click="_exportToPdf">
+              <img src="../images/icons/pdf.svg" title="Export PDF" alt="Export PDF">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Chart organizer save modal -->
+    <chart-save
+      is-visible="{{isSavePopupVisible}}"
+      wo-record="[[_woRecord]]"
+      on-save="_showWarning"
+      on-close="_closeSaveChart"
+    ></chart-save>
+    <global-var name="woModuleInputs" value="{{woModuleInputs}}" read-only></global-var>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'view-graph',
+      properties: {
+        waterFallRageIndex: {
+          value: 0,
+          type: Number
+        },
+        waterFallData: {
+          type: Array,
+          value: []
+        },
+        charts: {
+          type: Array,
+          value: []
+        },
+        tagsList: {
+          type: Array,
+          value: []
+        },
+        warning: {
+          type: String,
+          value: '',
+        },
+        urlParams: {
+          type: Object,
+          value: {}
+        },
+        waterFallRange: {
+          type: Array,
+          value: []
+        },
+        _isVisibleCategoryTimeSwitcher: {
+          type: Boolean,
+          value: true
+        },
+        _categoryTimeSwitcher: {
+          type: Boolean,
+          value: true
+        },
+        waterPrettyRange: {
+          type: Array,
+          value: []
+        },
+        _isGlobalExportVisible: {
+          type: Boolean,
+          value: false
+        },
+        _woRecord: {
+          type: Object,
+          value: {}
+        },
+        _isAddChartAvailable: {
+          type: Boolean,
+          value: true
+        },
+        _maxCharts: {
+          type: Number,
+          value: 12
+        },
+        expandedChart: {
+          value: -1,
+          type: Number
+        },
+        isMenuCollapsed: {
+          type: Boolean,
+          value: false
+        },
+        renderTrigger: {
+          type: Number,
+          value: Date.now()
+        }
+      },
+      observers: [
+        '_onModuleInputChange(woModuleInputs)'
+      ],
+      active: function () {
+      },
+      created: async function () {
+        this._hideLoader()
+        const getOrganizationId = _.get(window, ['chartApp', 'helpers', 'getOrganizationId'])
+        const org_id = await getOrganizationId()
+        const getTags = _.get(window, ['chartApp', 'api', 'getTags'])
+        if (getTags) {
+          this.tagsList = await getTags(org_id)
+          this._hideLoader()
+        }
+      },
+      attached: function () {
+        gtag('event', 'Charts', {
+          event_category: 'Trend Analysis',
+          event_label: window.user_id,
+          value: '',
+        });
+
+        this.async(function () {
+          $('[data-toggle="tooltip"]').tooltip();
+          $('[data-toggle="popover"]').popover();
+        });
+        this.charts = []
+        this.set('charts', this._getDefaultCharts())
+        this._addFullScreenHandler()
+      },
+      detached: function () {
+        this._removeFullScreenHandler()
+      },
+      _addFullScreenHandler() {
+        let chart, items, chartsBtn, chartsBtnIndex
+        const btnText = 'Set Axis'
+        this.fullScreenHandler = () => {
+          if (_.isEmpty(chart) && document.fullscreenElement) {
+            // in fullscreen mode
+            chart = $(document.fullscreenElement).highcharts()
+            items = chart.options.exporting.buttons.contextButton.menuItems
+            if (_.isEmpty(chartsBtn)) {
+              chartsBtnIndex = items.findIndex(btn => btn.text === btnText)
+              if (chartsBtnIndex !== -1) chartsBtn = items.splice(chartsBtnIndex, 1)[0] // remove Set axis button
+            }
+            chart.update({exporting: {buttons: {contextButton: {menuItems: items}}}})
+          } else {
+            // in normal mode
+            if (chartsBtn && chart) {
+              items.splice(chartsBtnIndex, 0, chartsBtn) // add Set axis button
+              chart.update({exporting: {buttons: {contextButton: {menuItems: items}}}})
+            }
+            chart = null
+            items = null
+            chartsBtn = null
+            chartsBtnIndex = null
+          }
+        }
+        if (!window.fullScreenHandler) {
+          document.addEventListener("fullscreenchange", this.fullScreenHandler);
+          window.fullScreenHandler = true
+        }
+      },
+      _removeFullScreenHandler() {
+        document.removeEventListener("fullscreenchange", this.fullScreenHandler);
+        window.fullScreenHandler = false
+      },
+      _isExpanded(index, exp) {
+        return index === exp
+      },
+      async _expandChart({detail: {index}}) {
+        const value = this.expandedChart === index ? -1 : index
+        this.set('expandedChart', value)
+        this._collapseAllFilters()
+        if (value >= 0) {
+          this.set(['charts', index, 'isOpen'], true)
+        }
+        this._renameAllCharts()
+        this._isGlobalExportVisible = value === -1
+        this._checkAddNewChartVisibility()
+      },
+      _isTitleVisible(len) {
+        return len > 1
+      },
+      _getChartsLen(len) {
+        return len > 1
+      },
+      _getChartClass(len, index, expandedChart, isOpen) {
+        const classAttr = isOpen ? 'active ' : ''
+        if (isOpen) {
+          this.async(function () {
+            const el = $('.charts-graph-list chart-graph')[index]
+            if (el) el.scrollIntoView({block: 'end', behavior: 'smooth'})
+          }, 50)
+        }
+        if (expandedChart >= 0 && index !== expandedChart) return classAttr + 'hidden'
+        switch (true) {
+          case (len === 1 || this.expandedChart >= 0):
+            return classAttr + 'only-one'
+          case len > 1:
+            return classAttr + 'more-two-charts'
+          default:
+            return classAttr
+        }
+      },
+      _onChangeSelected(e, data) {
+        const index = _.get(data, 'index')
+        const selected = _.get(data, 'selected')
+        if (index !== undefined && selected) {
+          this.set(['charts', index, 'options'], {})
+          this.set(['charts', index, 'generated'], false)
+          this._isAddChartAvailable = !['waterfall', 'pie'].includes(selected) && this.charts.length < this._maxCharts
+          this._isGlobalExportVisible = this.charts.length > 1 || selected === 'pie'
+        }
+      },
+      _getDefaultCharts() {
+        return [{name: '', filters: {}, options: {}, isOpen: true}]
+      },
+      _showLoader() {
+        document.documentElement.classList.add('in-progress')
+      },
+      _hideLoader() {
+        document.documentElement.classList.remove('in-progress')
+      },
+      async _generateChart(e, index) {
+        if (!window.organization_id) return this._logout()
+        this.set(['charts', index, 'isRendering'], true)
+        const filters = _.cloneDeep(this._woRecord.settings.list[index].filters)
+        this.set(['charts', index, 'filters'], filters)
+
+        const params = await this._createParams(index)
+        const {selectedChart} = params
+
+        const getChartOptions = _.get(window, ['chartApp', 'options', selectedChart])
+        if (!getChartOptions) {
+          console.log(`can't get chart parameters`)
+        }
+        try {
+          let options
+          this._showLoader()
+          // TODO: Implement generate handler to column, bar, stacked column charts
+          if (['waterfall', 'wind_rose'].includes(selectedChart)) {
+            options = Date.now() // just trigger observer for options change in chart-graph.hml
+          } else {
+            options = await getChartOptions(params)
+          }
+          this.set(['charts', index, 'options'], options)
+          this.set(['charts', index, 'generated'], true)
+        } catch (e) {
+          //todo handle error
+          this.set(['charts', index, 'isRendering'], false)
+        } finally {
+          // this.set(['charts', index, 'isRendering'], false)
+          this._hideLoader()
+        }
+
+      },
+      _logout() {
+        document.cookie = "__pageUrl" + '=; Max-Age=-99999999;';
+        window.location.href = '/logout';
+      },
+      _onHeadersChange() {
+
+      },
+      async _createParams(index) {
+        if (index === undefined) {
+          return this.charts;
+        }
+        let options = this.charts[index].filters
+        const getOrganizationId = _.get(window, ['chartApp', 'helpers', 'getOrganizationId'])
+        const org_id = await getOrganizationId()
+        options = {
+          ...options,
+          ...(options.operatorShown && options.operator),
+          org_id
+        }
+        options.isTimeView = this._categoryTimeSwitcher
+        return options
+      },
+      _toggleChartFilters(e) {
+        const {dataset: {index}, value} = e.currentTarget
+        if (this.charts[index].isOpen) return this.set(['charts', index, 'isOpen'], false)
+        this._collapseAllFilters()
+        this.set(['charts', index, 'isOpen'], true)
+        if (this.expandedChart >= 0) {
+          this.set('expandedChart', parseInt(index))
+        }
+      },
+      _addNewChart() {
+        this.set('expandedChart', -1)
+        const len = this.charts.length
+        if (len >= this._maxCharts) return
+        this._collapseAllFilters()
+        this.push('charts', {name: this._getFilterName(len + 1), filters: {}, isOpen: true})
+        this._renameAllCharts()
+        this._isGlobalExportVisible = true
+        this._checkAddNewChartVisibility()
+      },
+      _collapseAllFilters() {
+        this.charts.forEach((chart, index) => {
+          this.set(['charts', index, 'isOpen'], false)
+        })
+      },
+      _removeChart(e) {
+        this.set('expandedChart', -1)
+        e.stopPropagation()
+        const {dataset: {index}} = e.currentTarget
+        this.splice('charts', index, 1)
+        this._woRecord.settings.list.splice(index, 1)
+        this._renameAllCharts()
+        if (this.charts.length === 1) {
+          this.set(['charts', 0, 'isOpen'], true)
+          this.set(['charts', 0, 'name'], '')
+          this._isGlobalExportVisible = false
+        } else {
+          this._isGlobalExportVisible = true
+        }
+        this._checkVisibilityCategoryTimeSwitcher()
+        this._checkAddNewChartVisibility()
+      },
+      _checkAddNewChartVisibility() {
+        this._isAddChartAvailable = this.charts.length < this._maxCharts
+      },
+      _renameAllCharts() {
+        this.charts.forEach((chart, i) => {
+          this.set(['charts', i, 'name'], this._getFilterName(i + 1))
+        })
+      },
+      _getFilterName(i) {
+        const isModified = _.get(this.charts[i - 1], 'modified', false)
+        return isModified ? this.charts[i - 1].name : `Chart ${i}`
+      },
+      // work organizer functionality
+      _showSaveChart() {
+        this.isSavePopupVisible = true
+      },
+      _closeSaveChart() {
+        this.isSavePopupVisible = false
+      },
+      _setWoRecord(e, data) {
+        if (_.isEmpty(data)) return
+        data = _.cloneDeep(data)
+        const {index, filterParams} = data
+        if (_.isEmpty(filterParams)) return
+        const defaultParams = {
+          isTimeView: this._categoryTimeSwitcher,
+          isChartView: true,
+          windRoseFrequency: 'hrs',
+          initialValueTag: '',
+          constituentTags: [],
+          totalTagName: 'Total'
+        }
+        const settings = _.get(this._woRecord, 'settings')
+        this._woRecord.settings = _.isEmpty(settings) ? {} : settings
+        _.set(this._woRecord, 'settings.global.isTimeView', this._categoryTimeSwitcher)
+        this._woRecord.settings.list = this.charts.map((c, i) => {
+          let filters
+          if (i === index) {
+            filters = {...defaultParams, ...c.filters, ...filterParams}
+          } else {
+            filters = _.get(settings, ['list', i, 'filters'], {})
+          }
+          return {name: c.name, isOpen: c.isOpen, filters, modified: true}
+        })
+        const selected = filterParams.selectedChart
+        if (selected) this.set(['charts', index, 'filters', 'selectedChart'], selected)
+        this._checkVisibilityCategoryTimeSwitcher()
+      },
+      _showWarning(event, data) {
+        this.warning = data
+      },
+      //restore chart params
+      _onModuleInputChange(params) {
+        if (!_.isEmpty(params) && _.get(params, 'module') === 'Charts') {
+          this._woRecord = _.omit(params, ['settings'])
+          const charts = _.get(params, 'settings.list')
+          this._categoryTimeSwitcher = _.get(params, 'settings.global.isTimeView', false)
+          if (!_.isEmpty(charts)) {
+            // document.querySelectorAll('.datepicker-input').forEach(dp => dp.remove())
+            this.set('charts', [])
+            this.set('charts', charts.map((c, index) => {
+              return {
+                name: c.name,
+                isOpen: c.isOpen,
+                modified: c.modified,
+                filters: _.cloneDeep(c.filters),
+                initParams: _.cloneDeep(c.filters)
+              }
+            }))
+            this.async(function () {
+              this.charts.forEach((c, i) => this._generateChart(null, i))
+            }, 200)
+          }
+        }
+      },
+      _getChartsWithSwitcher() {
+        return ['column', 'bar', 'stacked_column']
+      },
+      _onChangeCategoryTimeSwitcher(e) {
+        if (!_.isEmpty($('.show-datalabels-checkbox'))) $('.show-datalabels-checkbox').prop("checked", false)
+        this._categoryTimeSwitcher = _.get(e, 'target.checked')
+        _.set(this._woRecord, 'settings.global.isTimeView', this._categoryTimeSwitcher)
+        this.charts.forEach((c, i) => {
+          if (!c.generated) return
+          const type = _.get(c, 'filters.selectedChart')
+          const charts = this._getChartsWithSwitcher()
+          if (charts.includes(type)) {
+            this._generateChart({}, i)
+          }
+        })
+      },
+      _checkVisibilityCategoryTimeSwitcher() {
+        const charts = _.get(this._woRecord, 'settings.list', [])
+        const type = (c) => _.get(c, 'filters.selectedChart')
+        this._isVisibleCategoryTimeSwitcher = charts.some(c => this._getChartsWithSwitcher().includes(type(c)))
+      },
+
+      // chart global export
+      _getSVG(charts, options, inRow, callback) {
+        let svgArr = [], top = 0, width = 0, left = 0, svgWidth, svgHeight, maxLeft = 0
+        const addSVG = (svgres, i) => {
+          const endOfHorizontalLine = i % inRow
+          const endOfVerticalLine = (i + 1) % inRow
+          // Grab width/height from exported chart
+          svgWidth = +svgres.match(/^<svg[^>]*width\s*=\s*"?(\d+)"?[^>]*>/)[1]
+          svgHeight = +svgres.match(/^<svg[^>]*height\s*=\s*"?(\d+)"?[^>]*>/)[1]
+          left = endOfHorizontalLine === 0 ? 0 : width * endOfHorizontalLine
+          // Offset the position of this chart in the final SVG
+          let svg = svgres.replace('<svg', `<g transform="translate(${left}, ${top})" `)
+          svg = svg.replace('</svg>', '</g>')
+
+          top = endOfVerticalLine === 0 ? top + svgHeight : top
+          width = Math.max(width, svgWidth)
+          maxLeft = Math.max(maxLeft, left)
+          svgArr.push(svg)
+        }
+        const exportChart = i => {
+          if (i === charts.length) {
+            const height = i % inRow ? top + svgHeight : top
+            return callback(`<svg height="${height}" width="${maxLeft + width}" version="1.1" xmlns="http://www.w3.org/2000/svg">`
+              + `<rect fill="#ffffff" x="0" y="0" height="${height}" width="${maxLeft + width}" rx="0" ry="0"></rect>`
+              + svgArr.join('') + '</svg>');
+          }
+          charts[i].getSVGForLocalExport(options, {}, function () {
+            console.log("Failed to get SVG");
+          }, function (svg) {
+            addSVG(svg, i);
+            return exportChart(i + 1); // Export next only when this SVG is received
+          });
+        };
+        exportChart(0);
+      },
+      _exportCharts(charts, options, inRow) {
+        if (_.isEmpty(charts)) return
+        const H = window.Highcharts
+        H.setOptions({
+          exporting: {
+            fallbackToExportServer: false, // Ensure the export happens on the client side or not at all
+            filename: this._getFilename(),
+          }
+        })
+        options = H.merge(H.getOptions().exporting, options);
+
+        // Get SVG asynchronously and then download the resulting SVG
+        this._getSVG(charts, options, inRow, function (svg) {
+          H.downloadSVGLocal(svg, options, function () {
+            console.log("Failed to export on client side")
+          })
+        })
+      },
+      _getFilename() {
+        return 'Chart - ' + moment().format('YYYY-MM-DD HH:mm:ss')
+      },
+      _exportToPng() {
+        const container = this.$$('.modal-content')
+        try {
+          this._showContainerLoader(container)
+          const charts = this._getCharts()
+          const type = _.get(charts, '0.userOptions.series.0.type')
+          const inRow = type === 'pie' ? 3 : 2
+          // const maxCharts = type === 'pie' ? 6 : 4
+          this._exportCharts(charts, {}, inRow)
+        } catch (e) {
+        } finally {
+          this._hideContainerLoader(container)
+        }
+      },
+      async _exportToPdf() {
+        const container = this.$$('.modal-content')
+        try {
+          this._showContainerLoader(container)
+          const charts = this._getCharts()
+
+          const {jsPDF} = window.jspdf
+
+          const doc = new jsPDF({
+            orientation: "portrait",
+            unit: "mm",
+            format: "a4"
+          })
+
+          const canvases = await Promise.all(charts.map(this._getChartCanvas))
+          const len = canvases.length
+          const middleY = 140
+          let isNextPage = 0
+          const marginTop = 10
+          const pageWidth = 210
+          // const pageHeight = 297
+          canvases.map(({canvas, aspectRatio}, i) => {
+            isNextPage = i % 2
+            let width = 200
+            let height = width * aspectRatio
+            const top = middleY * isNextPage + marginTop
+            const marginLeft = 5
+            if (height > middleY) {
+              height = middleY
+              width = height / aspectRatio
+            }
+            const left = Math.round(pageWidth / 2) - Math.round(width / 2)
+            doc.addImage(canvas, 'JPEG', left, top, width, height)
+            if (isNextPage && (i < len - 1)) doc.addPage()
+          })
+          doc.save(this._getFilename() + '.pdf');
+        } catch (e) {
+        } finally {
+          this._hideContainerLoader(container)
+        }
+      },
+      _showContainerLoader(container) {
+        container.classList.add('container-loader')
+      },
+      _hideContainerLoader(container) {
+        container.classList.remove('container-loader')
+      },
+      _getChartCanvas(chart) {
+        const render_width = 1000;
+        const aspectRatio = chart.chartHeight / chart.chartWidth
+        const render_height = render_width * aspectRatio
+
+        // Create a canvas
+        const canvas = document.createElement('canvas')
+        canvas.height = render_height
+        canvas.width = render_width
+
+        return new Promise(resolve => {
+          // Create an image and draw the SVG onto the canvas
+          const image = new Image
+          image.onload = function () {
+            canvas.getContext('2d').drawImage(this, 0, 0, render_width, render_height)
+            resolve({canvas, aspectRatio})
+          };
+          // Get the chart's SVG code
+          const svg = chart.getSVG()
+          image.src = 'data:image/svg+xml;base64,' + window.btoa(svg)
+        })
+      },
+      _exportToXls() {
+        const getXlsRows = (chart) => {
+          let rows = chart.getDataRows(true)
+
+          const chartType = _.get(chart, 'options.chart.type')
+          // special export for box and whisker
+          if (chartType === 'boxplot') {
+            rows = [[], ['Category', "low", "q1", "median", "q3", "high"]]
+            chart.series.forEach(s => {
+              const v = _.get(s, 'data[0].options', {})
+              rows.push([s.name, v.low, v.q1, v.median, v.q3, v.high])
+            })
+          }
+          const chartTypeInSeries = _.get(chart, 'series.0.userOptions.type')
+          if (chartTypeInSeries === 'pie') {
+            const category = _.get(chart, 'series.0.userOptions.name')
+            rows = [[], ['Category', moment(category).utc().local(true).format('YYYY-MM-DD HH:mm:ss')]]
+            const data = _.get(chart, 'series.0.data', [])
+            data.forEach(tag => {
+              const {name, y, positive} = tag
+              const value = positive ? y : y * (-1)
+              rows.push([name, value])
+            })
+          }
+
+          return rows.slice(1).map(row => row.map(column => ({
+              type: typeof column === 'number' ? 'number' : 'string',
+              value: column
+            })
+          ))
+        }
+
+        window.zipcelx({
+          filename: 'Chart - ' + moment().format('YYYY-MM-DD HH:mm:ss'),
+          sheet: {
+            data: this._getCharts().map(getXlsRows).reduce((acc, v) => ([...acc, ...v]), [])
+          }
+        });
+      },
+      _checkCharts(e) {
+        if (this._getCharts().length === 0) e.stopPropagation()
+      },
+      _getCharts() {
+        const charts = []
+        $('.charts-graph-list .highcharts-container').each(function () {
+          const el = $(this).parent()
+          const chart = $(el).highcharts()
+          charts.push(chart)
+        })
+        return _.reject(charts, c => _.isEmpty(c))
+      },
+      _onRenderStart(e, index) {
+        this.set(['charts', index, 'isRendering'], true)
+      },
+      _onRenderFinish(e, index) {
+        this.async(function () {
+          this.set(['charts', index, 'isRendering'], false)
+        }, 100)
+
+      },
+      _getMenuRootClassName(isMenuCollapsed) {
+        return `graph-container h-100 w-25 menu-container ${isMenuCollapsed ? 'collapsed' : ''}`
+      },
+      _toggleMenu() {
+        this.set('isMenuCollapsed', !this.isMenuCollapsed)
+        this.set('renderTrigger', Date.now())
+      },
+      _editModeChartTitle(e) {
+        e.stopPropagation()
+        let index = _.get(e, 'target.dataset.index')
+        this.set(['charts', index, 'editable'], true)
+        this.async(function () {
+          const el = $(`.chart-filters-title`)[index]
+          $(el).find('input').focus()
+        })
+
+      },
+      _changeChartTitle(e) {
+        e.stopPropagation()
+        const index = _.get(e, 'target.dataset.index')
+        const value = _.get(e, 'target.value')
+        this.set(['charts', index, 'name'], value)
+        this.set(['charts', index, 'editable'], false)
+        this.set(['charts', index, 'modified'], true)
+      },
+      _titleOutFocus(e) {
+        const index = _.get(e, 'target.dataset.index')
+        this.set(['charts', index, 'editable'], false)
+        this.set(['charts', index, 'modified'], true)
+      },
+      _stopEvent(e) {
+        e.stopPropagation()
+      }
+
+    });
+  </script>
+</dom-module>

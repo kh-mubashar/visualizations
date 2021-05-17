@@ -1,0 +1,43 @@
+{
+  "entrypoint": "public/index.html",
+  "shell": "public/elements/app-shell.html",
+  "fragments": [
+    "public/elements/view-graph.html",
+    "public/elements/view-trend-analysis.html",
+    "public/elements/view-work-organizer.html"
+  ],
+  "sources": [
+    "public/favicon.*",
+    "public/images/**/*",
+    "public/*.html"
+  ],
+  "extraDependencies": [
+    "public/bower_components/webcomponentsjs/*.min.js",
+    "public/bower_components/webcomponentsjs/*",
+    "public/bower_components/jquery/dist/jquery.min.js",
+    "public/bower_components/jquery-ui/themes/base/*.*",
+    "public/bower_components/jquery-ui/jquery-ui.min.js",
+    "public/bower_components/bootstrap/dist/css/bootstrap.min.css",
+    "public/bower_components/bootstrap/dist/js/bootstrap.bundle.min.js",
+    "public/bower_components/fontawesome/webfonts/*",
+    "public/bower_components/fontawesome/css/all.min.css",
+    "public/highcharts/daterangepicker.css",
+    "public/app.css"
+  ],
+  "builds": [
+    {
+      "name": "iridium",
+      "js": {
+        "compile": false,
+        "minify": true
+      },
+      "css": {
+        "minify": true
+      },
+      "html": {
+        "minify": true
+      },
+      "bundle": true
+    }
+  ]
+}

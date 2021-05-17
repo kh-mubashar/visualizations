@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" class="h-100 in-progress">
+  <head>
+    <title>Empiric Analyzer</title>
+
+    <base href="/" />
+    <meta charset="utf-8" />
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes"
+    />
+
+    <script>
+      window.evn_id = '%env_id%' || '';
+      window.user_id = '';
+      window.organization_id = '';
+      window.current_server_time = '';
+      window.users = '';
+      window.comit_id = '%commetId%' || '';
+    </script>
+
+    <!-- <script>
+      var chat_appid = '54651';
+      var chat_auth = 'ed4b5a41d32ece8347394f9de59a8c1d';
+      var chat_name = window.user_id;
+      var chat_id = window.user_id;
+      var chat_friends = window.users;
+      var chat_signature = window.comit_id;
+    </script>
+    <script>
+      (function () {
+        var chat_css = document.createElement('link');
+        chat_css.rel = 'stylesheet';
+        chat_css.type = 'text/css';
+        chat_css.href =
+          'https://fast.cometondemand.net/' + chat_appid + 'x_xchat.css';
+        document.getElementsByTagName('head')[0].appendChild(chat_css);
+        var chat_js = document.createElement('script');
+        chat_js.type = 'text/javascript';
+        chat_js.src = 'https://fast.cometondemand.net/' + chat_appid + 'x_xchat.js';
+        var chat_script = document.getElementsByTagName('script')[0];
+        chat_script.parentNode.insertBefore(chat_js, chat_script);
+      })();
+    </script> -->
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=UA-97985973-5"
+    ></script>
+    <script>
+      window.gatg_id = 'UA-97985973-5';
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag('js', new Date());
+
+      gtag('config', window.gatg_id, {
+        user_id: window.user_id,
+        send_page_view: false,
+        link_attribution: true,
+      });
+    </script>
+
+    <!-- Hotjar Tracking Code for https://iridium.empiric.ai/ -->
+    <!-- blooked due to CSP implementation -->
+    <!-- <script>
+      (function (h, o, t, j, a, r) {
+        h.hj =
+          h.hj ||
+          function () {
+            (h.hj.q = h.hj.q || []).push(arguments);
+          };
+        h._hjSettings = { hjid: 1670447, hjsv: 6 };
+        a = o.getElementsByTagName('head')[0];
+        r = o.createElement('script');
+        r.async = 1;
+        r.src = t + h._hjSettings.hjid + j + h._hjSettings.hjsv;
+        a.appendChild(r);
+      })(window, document, 'https://static.hotjar.com/c/hotjar-', '.js?sv=');
+    </script> -->
+
+    <style>
+      .export-in-progress .export-hint {
+          display: inline-block;
+          position: fixed;
+          z-index: 100;
+          margin: auto;
+          text-align: center;
+          left: 0;
+          right: 0;
+          top: calc(50vh - 68px);
+      }
+      .in-progress:before,
+      .export-in-progress:before {
+        content: '';
+        display: block;
+        background-color: rgba(255, 255, 255, 0.9);
+        height: 100%;
+        width: 100%;
+        left: 0;
+        top: 0;
+        text-align: center;
+        position: fixed;
+        z-index: 97;
+      }
+
+      .in-progress:after,
+      .export-in-progress:after {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 40px;
+        font-size: 2px;
+        text-indent: -9999em;
+        border-top: 1em solid #e5edfa;
+        border-right: 1em solid #e5edfa;
+        border-bottom: 1em solid #e5edfa;
+        border-left: 1em solid #0055cc;
+        border-radius: 50%;
+        position: fixed;
+        left: calc(50% - 20px);
+        top: calc(50% - 20px);
+        z-index: 98 !important;
+        -webkit-animation: spinner-animation 1.1s infinite linear;
+        -moz-animation: spinner-animation 1.1s infinite linear;
+        -ms-animation: spinner-animation 1.1s infinite linear;
+        -o-animation: spinner-animation 1.1s infinite linear;
+        animation: spinner-animation 1.1s infinite linear;
+      }
+
+      @-webkit-keyframes spinner-animation {
+        0% {
+          transform: rotate(0);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      @-moz-keyframes spinner-animation {
+        0% {
+          transform: rotate(0);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      @-ms-keyframes spinner-animation {
+        0% {
+          transform: rotate(0);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      @-o-keyframes spinner-animation {
+        0% {
+          transform: rotate(0);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes spinner-animation {
+        0% {
+          transform: rotate(0);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+
+    <link
+      href="../public/bower_components/jquery-ui/themes/base/jquery-ui.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="../public/bower_components/bootstrap/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="../public/bower_components/fontawesome/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link href="../public/app.css" rel="stylesheet" />
+
+    <!-- <script src="../public/bower_components/webcomponentsjs/webcomponents.min.js"></script> -->
+    <script src="../public/bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+
+    <script src="../public/bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="../public/bower_components/jquery-ui/jquery-ui.min.js"></script>
+
+    <script src="../public/bower_components/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <link rel="import" href="../public/elements/app-shell.html" />
+  </head>
+
+  <body class="h-100 w-100">
+    <app-shell></app-shell>
+
+    <script>
+      var app_time = new Date();
+      document.addEventListener('mouseup', function (e) {
+        // console.log('mouseup', e)
+        // console.clear();
+        var click_time = new Date();
+        var time_duration = Math.round((click_time - app_time) / 1000);
+        var t = e.target;
+        var label = '';
+        if (t.classList) {
+          // console.log('classList', t.classList.value);
+          label = label + '|class>' + t.classList.value;
+        }
+        if (t.id) {
+          // console.log('id', t.id);
+          label = label + '|id>' + t.id;
+        }
+        if (t.href) {
+          // console.log('href', t.href);
+          label = label + '|href>' + t.href;
+        }
+
+        gtag('event', window.user_id + '>click', {
+          event_category: location.hash,
+          event_label: label,
+          value: time_duration + 's',
+        });
+      });
+    </script>
+  </body>
+</html>

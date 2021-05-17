@@ -1,0 +1,281 @@
+<link rel="import" href="../../../bower_components/polymer/polymer.html"/>
+<dom-module id="categories-form">
+  <template>
+    <style>
+        ::content .min-width-50 {
+            min-width: 50%;
+        }
+    </style>
+    <template is="dom-if" if="[[hasUnitFilter]]">
+      <select
+        class="form-control mb-3"
+        autocomplete="off"
+        value="[[selectedUom]]"
+        on-change="_changeSelectedUom"
+      >
+        <option value="">Select unit of measure</option>
+        <template is="dom-repeat" items="{{uomList}}" as="item" restamp>
+          <option selected$="{{_isThisUomSelected(selectedUom, item)}}" value="[[item]]">[[_getUnitText(item)]]</option>
+        </template>
+      </select>
+    </template>
+    <template is="dom-repeat" items="{{categories}}" as="category" restamp>
+      <div class="form-group mb-4">
+        <div>
+          <label class="col-form-label py-1">Category [[_incrNumber(index)]]</label>
+          <template is="dom-if" if="[[_showRemove(categories.length)]]">
+            <i data-index$="[[index]]"
+               title="Remove category"
+               class="fas fa-times-circle text-dark p-2 mb-1 cursor-pointer"
+               on-click="_removeCategory">
+            </i>
+          </template>
+        </div>
+        <input
+          class="form-control mb-2"
+          placeholder="Category"
+          autocomplete="off"
+          data-index$="[[index]]"
+          value$="[[category.label]]"
+          on-input="_changeCategoryLabel"
+          required/>
+
+        <template is="dom-repeat" items="{{category.tags}}" as="tag" restamp index-as="tag_index">
+          <div class="d-flex mb-2">
+            <input
+              list$="[[uniqDropdownID]]"
+              class="form-control min-width-50"
+              placeholder="Search/Add Tags"
+              autocomplete="off"
+              data-index$="[[index]]"
+              data-tag_index$="[[tag_index]]"
+              value="[[tag.tag]]"
+              on-change="_changeCategoryTag"
+              on-focus="_onInputFocus"
+              required/>
+            <input
+              class="form-control ml-2"
+              placeholder="Write Label"
+              autocomplete="off"
+              maxlength="32"
+              pattern="[0-9a-zA-Z-_]+([\s][0-9a-zA-Z-_]+)*"
+              value$="{{_getCategoryTagLabel(categories, index, tag_index)}}"
+              index="[[index]]"
+              data-index$="[[index]]"
+              data-tag_index$="[[tag_index]]"
+              on-input="_changeCategoryTagLabel"
+            />
+            <template is="dom-if" if="[[_showRemoveTag(category.tags.length)]]">
+              <i data-index$="[[index]]"
+                 data-tag_index$="[[tag_index]]"
+                 class="fas fa-times-circle text-dark p-2 mb-1 cursor-pointer"
+                 title="Remove tag with label"
+                 on-click="_removeCategoryTag">
+              </i>
+            </template>
+          </div>
+        </template>
+<!--        <template is="dom-if">-->
+          <div class="form-group mt-2 d-inline-block cursor-pointer" on-click="_incrTags" data-index$="[[index]]">
+            <i class="fas fa-plus-circle form-icon"></i>
+            <span class="p-1">Add more tags</span>
+          </div>
+<!--        </template>-->
+
+      </div>
+    </template>
+
+    <div class="form-group mt-4 d-inline-block cursor-pointer" on-click="_addCategory">
+      <i class="fas fa-plus-circle form-icon"></i>
+      <span class="p-1 font-weight-bold">Add category</span>
+    </div>
+
+    <!--      DROPDOWN LIST HELPER   -->
+    <datalist id$="[[uniqDropdownID]]" restamp>
+      <template is="dom-repeat" items="{{tagListFiltered}}" as="item" restamp>
+        <option value="[[item.tag_name]]">[[item.description]]</option>
+      </template>
+    </datalist>
+
+  </template>
+
+  <script>
+    Polymer({
+      is: 'categories-form',
+      properties: {
+        categories: {
+          type: Array,
+          value: [],
+          observer: '_onChangeCategories'
+        },
+        tagList: {
+          type: Array,
+          value: [],
+          observer: '_onChangeTagList'
+        },
+        hasUnitFilter: {
+          type: Boolean,
+          value: false
+        },
+        stacked: {
+          type: Boolean,
+          value: false
+        }
+      },
+      attached() {
+        const prefix = Date.now()
+        this.uniqDropdownID = `tagListDropdown${prefix}`
+        this._setUomList()
+        this.selectedUom = ''
+      },
+      _onChangeCategories(categories) {
+        const tag = _.get(categories, '0.tags.0.tag')
+        if (!_.isEmpty(tag)) {
+          const uom = this._getTagUom(tag)
+          this._changeSelectedUom({target: {value: uom}})
+        }
+      },
+      _getUnitText(item) {
+        return _.isEmpty(item) ? 'N/A' : item
+      },
+      _setUomList() {
+        const list = [..._.uniq(this.tagList.map(t => t.unit))]
+        this.set('uomList', list)
+      },
+      _onInputFocus(e) {
+        const {dataset: {index} } = e.target
+        const excludedTags = this.categories[index].tags.map(t => t.tag).filter(t => !_.isEmpty(t))
+        let tags = this.tagList
+        if (this.hasUnitFilter && !_.isEmpty(this.selectedUom)) {
+          tags = this.tagList.filter(t => t.unit === this.selectedUom)
+        }
+        this.set('tagListFiltered', tags.filter(t => !excludedTags.includes(t.tag_name)))
+      },
+      _changeSelectedUom(e) {
+        if (!this.hasUnitFilter) return
+        const oldTagUom = this.selectedUom
+        const newTagUom = _.get(e, 'target.value')
+        this.selectedUom = newTagUom === 'null' ? null : newTagUom
+
+        if (oldTagUom !== newTagUom) {
+          if (!_.isNull(oldTagUom) && _.isEmpty(oldTagUom) || this._isCategoriesEmpty()) {
+            return this._resetCategoriesTag(newTagUom)
+          }
+          const text = 'You are about to change the current unit of measure, this will clear up the form.'
+          if (confirm(text)) {
+            this._resetCategoriesTag(newTagUom)
+          } else {
+            this.selectedUom = oldTagUom
+          }
+        }
+      },
+      _resetCategoriesTag(uom) {
+        const resetCategoriesTag = _.cloneDeep(this.categories)
+          .map(c => {
+            c.tags = c.tags.reduce((acc, t, i) => {
+              const currentUom = this._getTagUom(t.tag)
+              if (uom !== currentUom) {
+                t.tag = ''
+                if (i < 2) acc.push(t)
+              } else {
+                acc.push(t)
+              }
+              return acc
+            }, [])
+            return c
+          })
+        this.set('categories', resetCategoriesTag)
+      },
+      _isCategoriesEmpty() {
+        return _.every(this.categories, c => {
+          return _.every(c.tags, t => _.isEmpty(t.tag))
+        })
+      },
+      _isThisUomSelected(selected, listItem) {
+        return selected === listItem
+      },
+      _incrNumber(n) {
+        return n + 1
+      },
+      _onChangeTagList(value) {
+        this.set('tagListFiltered', value)
+        this._setUomList()
+        this._onChangeCategories(this.categories)
+      },
+      _getCategoryTagLabel(categories, index, tag_index) {
+        return _.get(categories, [index, 'tags', tag_index, 'label'])
+      },
+      _changeCategoryLabel(e) {
+        const {dataset: {index}, value} = e.target
+        if (!this.categories[index]) return
+        this.set(`categories.${index}.label`, value)
+        this._updateCategories()
+      },
+      _changeCategoryTagLabel(e) {
+        const {dataset: {tag_index}, value, index} = e.target
+        const newCategories = this.categories.slice()
+        newCategories[index].tags[tag_index].label = value
+        this.set('categories', newCategories)
+        this._updateCategories()
+      },
+      _changeCategoryTag(e) {
+        const {dataset: {index, tag_index}, value} = e.target
+        const newCategories = this.categories.slice()
+        newCategories[index].tags[tag_index].tag = value
+        if (_.isEmpty(this.selectedUom)) {
+          const uom = this._getTagUom(value)
+          this._changeSelectedUom({target: {value: uom}})
+        }
+        document.activeElement.blur()
+        this._updateCategories()
+      },
+      _getTagUom(tag) {
+        const match = this.tagList.find(t => t.tag_name === tag)
+        return _.get(match, 'unit')
+      },
+      _incrTags(e) {
+        const { index } = e.currentTarget.dataset
+        if (this._isInvalid()) return
+        const newCategories = this.categories.slice()
+        newCategories[index].tags.push({tag: '', label: ''})
+        this.set('categories', JSON.parse(JSON.stringify(newCategories)))
+        this._updateCategories()
+      },
+      _isInvalid() {
+        this.fire('validate')
+        return _.some(this.categories[0].tags, item => {
+          const tag = _.get(item, 'tag')
+          return _.isEmpty(tag)
+        })
+      },
+      _addCategory() {
+        if (this._isInvalid()) return
+        const newCategories = [...this.categories, {
+          label: '',
+          tags: [{tag: '', label: ''}, ...(this.stacked ? [{tag: '', label: ''}] : [])]
+        }]
+        this.set('categories', JSON.parse(JSON.stringify(newCategories)))
+        this._updateCategories()
+      },
+      _showRemove(len) {
+        return len > 1
+      },
+      _removeCategory(e) {
+        const {dataset: {index}} = e.currentTarget
+        this.splice('categories', index, 1)
+        this._updateCategories()
+      },
+      _showRemoveTag(len) {
+        return len > 1
+      },
+      _removeCategoryTag(e) {
+        const {dataset: {index, tag_index}} = e.currentTarget
+        this.splice(['categories', [index], 'tags'], tag_index, 1)
+        this._updateCategories()
+      },
+      _updateCategories() {
+        this.fire('change-categories', _.cloneDeep(this.categories))
+      },
+    })
+  </script>
+</dom-module>

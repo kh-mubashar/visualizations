@@ -1,0 +1,85 @@
+<link rel="import" href="../../../bower_components/polymer/polymer.html"/>
+<link rel="import" href="../../components/forms/operator.html"/>
+<link rel="import" href="../../components/forms/tags.html"/>
+<link rel="import" href="../../components/forms/btn-operator.html"/>
+
+<dom-module id="combo-column-chart-filters">
+  <template>
+    <style></style>
+    <div class="combo-column-chart-filters">
+
+      <!--      OPERATOR BUTTON -->
+      <btn-operator operator-shown="{{operatorShown}}"></btn-operator>
+
+      <!--      OPERATOR  OPTIONS -->
+      <template is="dom-if" if="[[operatorShown]]">
+        <operator-form operator="{{operator}}" url-params="[[urlParams]]"></operator-form>
+      </template>
+
+      <!--      AXIS CATEGORIES   -->
+      <tags-form
+        tag-list="{{tagList}}"
+        tags="{{tags}}"
+        on-change-tags="_onTagsChange"
+      >
+      </tags-form>
+    </div>
+
+  </template>
+
+  <script>
+    Polymer({
+      is: 'combo-column-chart-filters',
+      properties: {
+        operatorShown: {
+          type: Boolean,
+          value: false,
+          observer: '_onOperatorShowChange'
+        },
+        operator: {
+          type: Object,
+          value: {
+            operator: 'AVG',
+            period: '1',
+            periodUnit: 'Day'
+          },
+          notify: true,
+          observer: '_onOperatorChange'
+        },
+        tagList: {
+          type: Array,
+          value: []
+        },
+        urlParams: {
+          type: Object,
+          value: {},
+          observer: '_onChangeUrlParams'
+        }
+      },
+      attached() {
+        this.set('tags', [{ tag: '', type: 'line' }])
+      },
+      _onChangeUrlParams(urlParams){
+        if (!_.isEmpty(urlParams) && urlParams.selectedChart === 'combo_column') {
+          this.async(function() {
+            this.set('tags', urlParams.tags)
+            this.set('operatorShown', urlParams.operatorShown)
+            this.fire('change-filters', {tags: urlParams.tags})
+          })
+        }
+      },
+      _onOperatorChange(operator) {
+        this.fire('change-filters', {operator, operatorShown: this.operatorShown})
+      },
+      _onTagsChange(e, tags) {
+        e.stopPropagation()
+        this.fire('change-filters', {tags})
+      },
+      _onOperatorShowChange() {
+        if (this.operator) {
+          this._onOperatorChange(this.operator)
+        }
+      }
+    })
+  </script>
+</dom-module>

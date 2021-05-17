@@ -1,0 +1,443 @@
+<<link rel="import" href="../bower_components/polymer/polymer.html" />
+<link rel="import" href="../bower_components/app-router/src/app-router.html" />
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html" />
+<link rel="import" href="global-loader/global-loader.html" />
+<link rel="import" href="../bower_components/global-var/global-var.html" />
+<link rel="stylesheet" type="text/css" href="../highcharts/daterangepicker.css" />
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="../bower_components/daterangepicker/daterangepicker.css"
+/>
+
+<script src="../bower_components/moment/min/moment.min.js"></script>
+<script src="../bower_components/daterangepicker/daterangepicker.js"></script>
+<!-- Highcharts 8.2.2 -->
+<script src="../bower_components/highcharts-8.2.2/highstock.src.js"></script>
+<script src="../bower_components/highcharts-8.2.2/highcharts-more.js"></script>
+<script src="../bower_components/highcharts-8.2.2/modules/data.js"></script>
+<script src="../bower_components/highcharts-8.2.2/modules/boost.js"></script>
+<script src="../bower_components/highcharts-8.2.2/modules/exporting.js"></script>
+<script src="../bower_components/highcharts-8.2.2/modules/export-data.js"></script>
+<script src="../bower_components/highcharts-8.2.2/modules/offline-exporting.js"></script>
+<script src="../bower_components/highcharts-8.2.2/modules/no-data-to-display.src.js"></script>
+<script src="../bower_components/highcharts-8.2.2/modules/bullet.js"></script>
+<script src="../bower_components/highcharts-8.2.2/modules/solid-gauge.js"></script>
+<script src="../bower_components/highcharts-8.2.2/modules/pattern-fill.js"></script>
+<script src="../bower_components/highcharts-8.2.2/indicators/indicators.js"></script>
+
+<dom-module id="app-shell">
+  <template>
+      <iron-ajax
+    id="userPref"
+    url="/getUserPref"
+    on-response="_onResponse_userPref"
+    on-error="_onError_getAuthorization"
+    last-response="{{userPreferences}}"
+  >
+  </iron-ajax>
+    <!-- scoped CSS for this element -->
+    <style>
+      app-route:not([active]) {
+        display: none;
+      }
+
+      .field-icon {
+        float: right;
+        margin-right: 25px;
+        margin-top: -25px;
+        position: relative;
+        z-index: 2;
+      }
+
+      .field-info {
+        float: right;
+        margin-right: 5px;
+        margin-top: -29px;
+        position: relative;
+        z-index: 2;
+      }
+
+      app-route[active] {
+        display: inline !important;
+      }
+
+      .highlight {
+        background-color: #f8f9fa;
+      }
+
+      .navbar {
+        top: 0 !important;
+        z-index: 9999;
+      }
+
+      .app-nav .nav-link {
+        position: relative;
+      }
+
+      .app-nav .nav-link::after {
+        content: '';
+        position: absolute;
+        right: -1px;
+        top: 33.3333333%;
+        height: 33.3333333%;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .app-nav .nav-link.active {
+        background-color: #e5edfa;
+        color: #0055cc;
+      }
+
+      .app-nav .nav-link.active:after {
+        display: none;
+      }
+
+      ::content .highcharts-stocktools-wrapper {
+        display: none !important;
+      }
+
+      #userId {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .navbar-toggler {
+        padding: 13px 17px;
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .app-nav .nav-link.active~.sub-nav {
+        display: flex !important;
+      }
+
+      .sub-nav {
+        background-color: #e5edfa;
+        position: absolute;
+        left: 0;
+        width: 100%;
+        z-index: 999;
+        display: none !important;
+        overflow: hidden;
+      }
+
+      .sub-nav:hover {
+        overflow: auto;
+      }
+
+      .sub-nav .sub-nav-item {
+        position: relative;
+      }
+
+      .sub-nav .sub-nav-link {
+        display: block;
+        position: relative;
+        border-radius: 0;
+        padding: 0.75rem 1.625rem;
+        background-color: transparent;
+        color: rgba(255, 255, 2552, 0.5);
+        transition-delay: 300ms;
+        transition: padding 300ms, box-shadow 600ms;
+        white-space: nowrap;
+        text-decoration: none;
+        color: #0055cc;
+        opacity: 0.85;
+      }
+
+      .sub-nav .sub-nav-link:hover {
+        opacity: 1;
+      }
+
+      .sub-nav .sub-nav-link::after {
+        content: '';
+        position: absolute;
+        right: -1px;
+        top: 33.3333333%;
+        height: 33.3333333%;
+        border-right: 1px solid #0055cc;
+        opacity: 0.25;
+      }
+
+      .sub-nav .sub-nav-link.active::after {
+        display: none;
+      }
+
+      .sub-nav .sub-nav-link.active {
+        background-color: #fff;
+        opacity: 1;
+      }
+    </style>
+
+    <nav class="navbar navbar-dark bg-ea position-fixed w-100 navbar-expand-lg p-0">
+      <a class="d-flex align-items-center navbar-brand p-0 m-0" style="color: #fff">
+        <img
+          src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAA4CAYAAABNGP5yAAAABHNCSVQICAgIfAhkiAAAAudJREFUaIHt2E+IVWUYx/GPYoxmmjJgGCZCzSJ0X5ur4CKw2TQbcRXMzlKCEFo4tElEESKERlyqK22jmxauotwkLQIDd7cirBQRZAhlSpkW5wxz5tx77r3nnhOP4fuFy7zve5/nnt/7m/e8/9YsLS296jlmbbSAaJIB0QKiSQZEC4gmGRAtIJpkQLSAaJIB0QKiSQZEC4gmGRAtIJpkQLSAaJIB0QKiWdfy7+3DAezCemzHL3iM67g8JL+D3dhcav8VXxXq09iYl//EjXEFr2npUvQQZjGFiQFxd3AJ86X2Dt6VGVbFI9zCeXyOybz9Ns7Ul5zRxgg4jYMGd3yZHTiON3E0bzuMt0fIfTGPm8IL9WX2p6kBX2Km1NbFH/gpr2+XiS6OjuWcH/R2/hF+x194iFew1cromNQiTQw4JBu2y3TxKb6tiN+HE3g9r8/gDdwtxPyIsxX5HbynZQOarAKzVv6jXexV3Xn5d3vz2GV2FcrfqO482UR3DA9qKx1AEwP2FMpXauRdL5Q35H9/w8UR86/VeNZQxn0F5kr19/PPKKzv8/xuv8AKbmjxVWhrH7CjYf7PNePvecYMuFMzfgKbCvXyxmcYL9WMr6QtAz4xeALsx4VC+bWauVtqxlcy7iR4EouF+gdj/EZxNp+qkXdQ/RFTSZNV4Fah3JFtikZlDk8L9Ul8NkLeNN6p8ZyhNDHgC6tHwQy+07tCFJnDTXyInVgofLcTp2Rm9uNw/oxWD3BND0NHZJuT8jlgEfdLbZv1Dt2L2Ka3Uwv4p1B/uRDzBH/LzgYEH4bmZe/yx1YvhRMGL42LsknzuGxYT1vpENXv+IJsI7W/FD82bVyIXMZbOGf4hqaLq7Jt9Gze9nWee1t2EOrHAr7HR3l8a7R1H1DmiNVL1UO9dwBVdKy+F2h04TGM/8qA/w3P/Z1gMiBaQDTJgGgB0SQDogVEkwyIFhBNMiBaQDTJgGgB0SQDogVEkwyIFhDNv0SsdNfR8oAiAAAAAElFTkSuQmCC" />
+      </a>
+
+      <button class="navbar-toggler border-0 rounded-0" type="button" data-toggle="collapse" data-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="app-nav navbar-nav mr-auto">
+          <li class="nav-item">
+            <a    id="trendAnalysisTab" class="nav-link py-3 px-4" href="#/trend-analysis/tag-search" on-tap="_navClick">Trend Analysis</a>
+            <ul class="sub-nav d-flex flex-row flex-nowrap list-unstyled">
+              <li class="sub-nav-item">
+                <a
+                  class="sub-nav-link"
+                  href="#/trend-analysis/tag-search"
+                >
+                  Trend Analysis
+                </a>
+              </li>
+              <li class="sub-nav-item">
+                <a
+                  class="sub-nav-link"
+                  href="#/trend-analysis/chart"
+                >
+                  Charts
+                </a>
+              </li>
+               <li class="sub-nav-item">
+                <a
+                  class="sub-nav-link"
+                  href="#/trend-analysis/work-organizer"
+                >
+                  Work Organizer
+                </a>
+              </li>
+
+            </ul>
+          </li>
+        </ul>
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <div style="cursor: pointer" class="nav-link py-3 px-4" data-toggle="modal" data-target="#versionModal">
+              <!-- <div style="cursor: pointer;" class="nav-link  py-3 px-4"> -->
+              <span class="badge badge-light">v6.3</span>
+            </div>
+          </li>
+          <li class="nav-item text-nowrap dropdown">
+            <a id="userId" class="nav-link dropdown-toggle py-3 px-4" data-toggle="dropdown" href="#"
+              aria-haspopup="true" aria-expanded="false"><i class="fas fa-user mr-2"></i>{{userId}}</a>
+            <div class="dropdown-menu dropdown-menu-right">
+              <div on-click="_endSession">
+                <a class="dropdown-item">Logout</a>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <div class="modal fade" id="versionModal" tabindex="-1" role="dialog" aria-labelledby="versionModalTitle"
+      aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="versionModalTitle">
+              Release Version <span class="badge badge-primary">6.3.1</span>
+            </h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-2">
+              <div>Build Tag: v6.3.1.0</div>
+              <div>Build Time: 2020/12/03 12:00:00</div>
+              <div>Build Type: <span style="color: green">Release</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <app-router mode="hash" scroll-to-hash="disabled" on-state-change="_routerStateChanged">
+      <!-- Default -->
+      <app-route path="/" redirect="/trend-analysis/tag-search"></app-route>
+      <app-route
+      path=" /trend-analysis"
+      redirect="/trend-analysis/tag-search"
+    ></app-route>
+      <!-- 404 route -->
+      <template is="dom-if" if="{{notFound}}">
+        <app-route path="*" import="../public/elements/view-not-found.html"></app-route>
+      </template>
+      <app-route state="persist" path="/trend-analysis/chart" import="../public/elements/view-graph.html"></app-route>
+      <app-route state="persist" path="/trend-analysis/tag-search" import="../public/elements/view-trend-analysis.html"></app-route>
+      <app-route state="persist" path="/trend-analysis/work-organizer" import="../public/elements/view-work-organizer.html"></app-route>
+    </app-router>
+
+  </template>
+
+  <script>
+    Polymer({
+      is: 'app-shell',
+
+      properties: {
+
+      },
+
+      active: function () { },
+
+      created: function () {
+
+      },
+
+      ready: function () {
+        this.$.userPref.generateRequest();
+      },
+
+      attached: function (e) {
+        var _root = this;
+        // var authorizationBody = [];
+        _root.async(function () {
+          document
+            .querySelector('app-router')
+            .addEventListener('previous-route', function (event) {
+              _root.async(function () {
+                if (
+                  event.detail.children.length &&
+                  typeof event.detail.children[0].deactive === 'function'
+                ) {
+                  event.detail.children[0].deactive();
+                }
+              });
+            });
+
+          document
+            .querySelector('app-router')
+            .addEventListener('active-route', function (event) {
+              _root.async(function () {
+                if (
+                  event.detail.children.length &&
+                  typeof event.detail.children[0].active === 'function'
+                ) {
+                  event.detail.children[0].active();
+                }
+              });
+            });
+
+        }, 300);
+      },
+
+      detached: function () { },
+
+
+      attributeChanged: function (name, type) { },
+
+      _routerStateChanged: function (e) {
+        var _root = this;
+        $('html').addClass('in-progress');
+        $('#versionModal').modal('hide');
+        if (e.detail.path.match(/[^\/]+/g)) {
+          var baseRoute = e.detail.path
+            .match(/[^\/]+/g)
+            .reverse()
+            .pop();
+
+          var activeRoute = $('.app-nav a.nav-link')
+            .removeClass('active')
+            .filter('[href*="#/' + baseRoute + '"]')
+            .addClass('active')
+            .attr('href', '/#' + e.detail.path);
+
+          $('.app-nav a.sub-nav-link')
+            .removeClass('active')
+            .filter(
+              '[href*="#' + e.detail.path.split('/').slice(0, 3).join('/') + '"]'
+            )
+            .addClass('active');
+
+          $('[data-toggle="tooltip"]').tooltip('hide');
+
+          this.setCookie('__pageUrl', '/#' + e.detail.path);
+
+          var app_title = document.title;
+          document.title = activeRoute.text();
+
+          if (e.detail.path === '/trend-analysis/correlation-matrix') {
+            if (document.querySelector('#correlationMatrixCheck'))
+              if (document.querySelector('#correlationMatrixCheck').checked) {
+                document.querySelector('#correlationMatrixCheck').click();
+              }
+          }
+          $('.modal').modal('hide');
+          $('.modal-backdrop').remove();
+
+          gtag('config', 'UA-97985973-5', {
+            page_title: activeRoute.text(),
+            page_path: e.detail.path,
+          });
+        }
+
+        if (
+          document.querySelector('#navbarNav').classList.value.indexOf('show') != -1
+        ) {
+          document.querySelector('[data-target="#navbarNav"]').click();
+        }
+      },
+
+      _getCookie: function (name) {
+        // Split cookie string and get all individual name=value pairs in an array
+        var cookieArr = document.cookie.split(';');
+
+        // Loop through the array elements
+        for (var i = 0; i < cookieArr.length; i++) {
+          var cookiePair = cookieArr[i].split('=');
+
+          /* Removing whitespace at the beginning of the cookie name
+                            and compare it with the given string */
+          if (name == cookiePair[0].trim()) {
+            // Decode the cookie value and return
+            return decodeURIComponent(cookiePair[1]);
+          }
+        }
+
+        // Return null if not found
+        return null;
+      },
+
+      _onResponse_userPref: function (e) {
+        window.user_id = this.userPreferences.user_id;
+        window.organization_id = this.userPreferences.organization_id;
+
+        this.userId = window.user_id;
+      },
+      _endSession: function () {
+        if (window.sessionStorage.getItem('currentTagList'))
+          sessionStorage.removeItem('currentTagList');
+        this.eraseCookie('__pageUrl');
+        window.location.href = '/logout';
+      },
+
+      setCookie: function (name, value, days) {
+        var expires = '';
+        if (days) {
+          var date = new Date();
+          date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+          expires = '; expires=' + date.toUTCString();
+        }
+        document.cookie = name + '=' + (value || '') + expires + '; path=/';
+      },
+
+      getCookie: function (name) {
+        var nameEQ = name + '=';
+        var ca = document.cookie.split(';');
+        for (var i = 0; i < ca.length; i++) {
+          var c = ca[i];
+          while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+          if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+      },
+
+      eraseCookie: function (name) {
+        document.cookie = name + '=; Max-Age=-99999999;';
+      },
+
+    });
+  </script>
+</dom-module>

@@ -1,0 +1,123 @@
+<link rel="import" href="../../../bower_components/polymer/polymer.html"/>
+<link rel="import" href="../../components/forms/operator.html"/>
+<link rel="import" href="../../components/forms/pie-categories.html"/>
+<link rel="import" href="../../components/forms/btn-operator.html"/>
+
+<dom-module id="filters-pie">
+  <template>
+    <style></style>
+    <div class="stacked-column-chart-filters">
+
+      <template is="dom-if" if="[[_isPercentsVisible]]">
+        <label class="d-flex align-items-center text-nowrap mt-4">
+          <input
+            type="checkbox"
+            on-change="_changeShowInPercents"
+            checked="{{_showInPercents}}">
+          <span class="d-inline-block pl-2"> Display numbers as percentages</span>
+        </label>
+      </template>
+
+      <!--      OPERATOR  BUTTON -->
+      <btn-operator operator-shown="{{operatorShown}}"></btn-operator>
+
+      <!--      OPERATOR  OPTIONS -->
+      <template is="dom-if" if="[[operatorShown]]">
+        <operator-form operator="{{operator}}" url-params="[[urlParams]]"></operator-form>
+      </template>
+
+      <!--      CATEGORIES   -->
+      <pie-categories
+        type="[[type]]"
+        tag-list="{{tagList}}"
+        categories="{{categories}}"
+        has-unit-filter="true"
+        on-change-categories="_onCategoriesChange"
+      >
+      </pie-categories>
+    </div>
+
+  </template>
+
+  <script>
+    Polymer({
+      is: 'filters-pie',
+      properties: {
+        type: {
+          type: String,
+          value: ''
+        },
+        operatorShown: {
+          type: Boolean,
+          value: false,
+          observer: '_onOperatorShowChange'
+        },
+        operator: {
+          type: Object,
+          value: {
+            operator: 'AVG',
+            period: '1',
+            periodUnit: 'Day'
+          },
+          notify: true,
+          observer: '_onOperatorChange'
+        },
+        tagList: {
+          type: Array,
+          value: []
+        },
+        urlParams: {
+          type: Object,
+          value: {},
+          observer: '_onChangeUrlParams'
+        }
+      },
+      attached() {
+        if (this.type === 'radar') {
+          this.set('categories', [{tag: '', label: null}, {tag: '', label: null}, {tag: '', label: null}])
+          this._isPercentsVisible = false
+        } else {
+          this.set('categories', [{tag: '', label: null}, {tag: '', label: null}])
+          this._isPercentsVisible = true
+        }
+        this._showInPercents = false
+      },
+      ready() {
+        if (this.type === 'radar') {
+          this.set('categories', [{tag: '', label: null}, {tag: '', label: null}, {tag: '', label: null}])
+          this._isPercentsVisible = false
+        } else {
+          this._isPercentsVisible = true
+        }
+      },
+      _onChangeUrlParams(urlParams){
+        if (!_.isEmpty(urlParams) && ['pie', 'radar'].includes(urlParams.selectedChart)) {
+          this.async(function() {
+            if (urlParams.selectedChart === 'pie' && this.type === 'radar') return
+            this.set('categories', urlParams.categories)
+            this.set('operatorShown', urlParams.operatorShown)
+            this._showInPercents = urlParams.showInPercents
+          })
+        }
+      },
+      _onOperatorChange(operator) {
+        this.fire('change-filters', {operator, operatorShown: this.operatorShown})
+      },
+      _onCategoriesChange(e, categories) {
+        e.stopPropagation()
+        this.fire('change-filters', {categories})
+      },
+      _onOperatorShowChange() {
+        if (this.operator) {
+          this._onOperatorChange(this.operator)
+        }
+      },
+      _changeShowInPercents(e) {
+        this._showInPercents = _.get(e, 'target.checked')
+        this.fire('change-filters', {showInPercents: this._showInPercents})
+      }
+
+    })
+  </script>
+</dom-module>
+

@@ -1,0 +1,89 @@
+<link rel="import" href="../../../bower_components/polymer/polymer.html"/>
+<link rel="import" href="../../components/forms/operator.html"/>
+<link rel="import" href="../../components/forms/tags-categories.html"/>
+<link rel="import" href="../../components/forms/btn-operator.html"/>
+
+<dom-module id="wind-rose-filters">
+  <template>
+    <style></style>
+    <div class="wind-rose-filters">
+      <div class="form-group mb-4">
+        <label class="col-form-label py-1">Wind Speed Tag</label>
+          <input
+              list="tagListDropdown"
+              class="form-control"
+              placeholder="Search/Add Tags"
+              autocomplete="off"
+              data-index$=""
+              value$="[[windSpeedTag]]"
+              on-change="_onWindSpeedTagChange"
+              required/>
+      </div>
+      <div class="form-group mb-4">
+        <label class="col-form-label py-1">Wind Direction Tag</label>
+        <input
+            list="tagListDropdown"
+            class="form-control"
+            placeholder="Search/Add Tags"
+            autocomplete="off"
+            data-index$=""
+            value$="[[windDirectionTag]]"
+            on-change="_onWindDirectionTagChange"
+            required/>
+      </div>
+
+      <datalist id="tagListDropdown" restamp>
+        <template is="dom-repeat" items="{{tagList}}" as="item" restamp>
+          <option value="[[item.tag_name]]">[[item.description]]</option>
+        </template>
+      </datalist>
+
+    </div>
+
+  </template>
+
+  <script>
+    Polymer({
+      is: 'wind-rose-filters',
+      properties: {
+        windSpeedTag: {
+          type: String,
+          value: ''
+        },
+        windDirectionTag: {
+          type: String,
+          value: ''
+        },
+        tagList: {
+          type: Array,
+          value: []
+        },
+        urlParams: {
+          type: Object,
+          value: {},
+          observer: '_onChangeUrlParams'
+        }
+      },
+      _onChangeUrlParams(urlParams){
+        if (!_.isEmpty(urlParams) && ['wind_rose'].includes(urlParams.selectedChart)) {
+          this.async(function() {
+            const {windSpeedTag, windDirectionTag} = urlParams
+            this.set('windSpeedTag', windSpeedTag)
+            this.set('windDirectionTag', windDirectionTag)
+            this.fire('change-filters', {windDirectionTag, windSpeedTag})
+          })
+        }
+      },
+      _onWindSpeedTagChange(e) {
+        const { value } = e.target
+        this.set('windSpeedTag', e.target.value)
+        this.fire('change-filters', {windSpeedTag: value})
+      },
+      _onWindDirectionTagChange(e) {
+        const { value } = e.target
+        this.set('windDirectionTag', e.target.value)
+        this.fire('change-filters', {windDirectionTag: value})
+      }
+    })
+  </script>
+</dom-module>

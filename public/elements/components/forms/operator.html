@@ -1,0 +1,143 @@
+<link rel="import" href="../../../bower_components/polymer/polymer.html"/>
+<dom-module id="operator-form">
+  <template>
+    <style>
+        .operator-form-container {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border: 1px solid #dadada;
+        }
+    </style>
+    <div class="operator-form-container">
+      <label class="d-flex align-items-center">
+        <input
+          type="checkbox"
+          on-change="_changeIsWholeRange"
+          value="{{_isWholeRange}}">
+        <span class="d-inline-block pl-2"> Whole time range</span>
+      </label>
+      <div class="form-group">
+        <select
+          class="form-control"
+          placeholder="Select operator"
+          autocomplete="off"
+          value="{{operatorValue::change}}"
+          required>
+          <template is="dom-repeat" items="{{operatorsList}}" as="item" restamp>
+            <option selected$="{{_operatorSelected(operatorValue, item)}}" value="[[item]]">[[item]]</option>
+          </template>
+        </select>
+      </div>
+      <div class="d-flex">
+        <input type="number"
+               placeholder="Select period"
+               autocomplete="off"
+               required
+               value="{{period::change}}"
+               disabled="[[_isWholeRange]]"
+               min="1"
+               step="1"
+               class="form-control">
+        <select
+          class="form-control ml-2"
+          placeholder="Select operator"
+          autocomplete="off"
+          value="{{periodUnit::change}}"
+          disabled="[[_isWholeRange]]"
+          required>
+          <template is="dom-repeat" items="{{periodUnitsList}}" as="item" restamp>
+            <option selected$="{{_periodUnitSelected(periodUnit, item)}}" value="[[item]]">[[item]]</option>
+          </template>
+        </select>
+      </div>
+    </div>
+
+  </template>
+
+  <script>
+    Polymer({
+      is: 'operator-form',
+      properties: {
+        operatorValue: {
+          type: String,
+          value: 'AVG',
+          observer: '_onOperatorChange'
+        },
+        period: {
+          type: String,
+          value: '1',
+          observer: '_onPeriodChange'
+        },
+        periodUnit: {
+          type: String,
+          value: 'Day',
+          observer: '_onPeriodUnitChange'
+        },
+        operator: {
+          type: Object,
+          value: {},
+          notify: true
+        },
+        operatorsList: {
+          type: Array,
+          value: ['AVG', 'SUM', 'MAX', 'MIN', 'TOTALIZER']
+        },
+        periodUnitsList: {
+          type: Array,
+          value: ['Minute', 'Hour', 'Day', 'Week', 'Month', 'Year']
+        },
+        urlParams: {
+          type: Object,
+          value: {},
+          observer: '_onChangeUrlParams'
+        }
+      },
+      attached() {
+        this._isWholeRange = false
+      },
+      _changeIsWholeRange(e) {
+        e.stopPropagation()
+        const isWholeRange = _.get(e, 'target.checked', false)
+        this._isWholeRange = isWholeRange
+        this.set('operator', {...this.operator, isWholeRange})
+      },
+      _onChangeUrlParams(urlParams) {
+        if (!_.isEmpty(urlParams)) {
+          this.async(function () {
+            const {operator, period, periodUnit} = urlParams
+            if (typeof operator === 'object') {
+              this.operatorValue = operator.operator
+              this.period = operator.period
+              this.periodUnit = operator.periodUnit
+            } else {
+              this.operatorValue = operator && typeof operator !== 'object' ? operator : this.operatorValue
+              this.period = period ? period : this.period
+              this.periodUnit = periodUnit ? periodUnit : this.periodUnit
+            }
+          })
+        }
+      },
+      _onOperatorChange(operator) {
+        this.set('operator', {...this.operator, operator})
+      },
+      _onPeriodChange(period) {
+        this.set('operator', {...this.operator, period})
+      },
+      _onPeriodUnitChange(periodUnit) {
+        this.set('operator', {...this.operator, periodUnit})
+      },
+      _operatorSelected(operator, value) {
+        return operator === value
+      },
+      // _generatePeriodRange() {
+      //   return _.range(10).map(i => i+1)
+      // },
+      _periodSelected(period, value) {
+        return period === value
+      },
+      _periodUnitSelected(periodUnit, value) {
+        return periodUnit === value
+      },
+    })
+  </script>
+</dom-module>

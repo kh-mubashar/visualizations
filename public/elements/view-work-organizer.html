@@ -1,0 +1,1044 @@
+<link rel="import" href="../bower_components/polymer/polymer.html" />
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html" />
+<link rel="stylesheet" type="text/css" href="../datatable/jquery.dataTables.css" />
+<script type="text/javascript" src="../datatable/jquery.dataTables.js"></script>
+<script
+  type="text/javascript"
+  src="../datatable/dataTables.bootstrap4.min.js"
+></script>
+<link rel="stylesheet" href="../bower_components/multisielect/select2.min.css" />
+<script src="../bower_components/multisielect/select2.full.min.js"></script>
+
+<dom-module id="view-work-organizer">
+  <template>
+    <style>
+      .nav-link.active {
+        background: #dee2e6;
+      }
+
+      .fa-tags {
+        width: 16px;
+      }
+
+      .fa-link {
+        transform: rotate(90deg);
+        font-size: 9px;
+        margin-top: 12px;
+        margin-left: -5px;
+      }
+
+      .sidebar {
+        overflow: hidden;
+      }
+
+      ::content .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 0px;
+        border: none !important;
+      }
+
+      ::content .dataTables_length,
+      ::content #woTable_filter {
+        display: none;
+      }
+
+      ::content .dataTables_info {
+        padding-left: 30px;
+      }
+
+      ::content .dataTables_paginate {
+        padding-right: 30px;
+      }
+
+      .badge {
+        cursor: pointer;
+      }
+
+      ::content #filter > th:last-child input {
+        display: none;
+      }
+
+      ::content .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 0px;
+        border: none !important;
+      }
+
+      ::content .dataTables_length,
+      ::content #example_filter {
+        display: none;
+      }
+
+      ::content .dataTables_info {
+        padding-left: 30px;
+      }
+
+      ::content .dataTables_paginate {
+        padding-right: 30px;
+      }
+
+      thead tr th {
+        font-weight: lighter;
+      }
+
+      #filter th {
+        padding: unset;
+      }
+
+      ::content #filter th input {
+        border: none;
+        width: 100%;
+        height: 35px;
+      }
+
+      ::content .listItemDesc {
+        /* overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap; */
+        max-width: 130px !important;
+        word-wrap: break-word;
+      }
+
+      ::content .listItemDatetime {
+        width: 300px !important;
+      }
+
+      ::content .input-filter input {
+        padding: 8px 10px;
+      }
+
+      .table-heading {
+        padding: 8px 10px;
+      }
+
+      ::content #woTable .badge {
+        cursor: pointer;
+      }
+    </style>
+
+    <div class="container-fluid h-100 container-with-sidebar">
+      <div class="d-flex h-100">
+        <nav class="bg-light sidebar position-fixed h-100 text-center border-right">
+          <ul class="nav flex-column">
+            <li class="nav-item">
+              <a
+                class="nav-link text-dark px-4 py-3"
+                href="#/trend-analysis/tag-search"
+                on-tap="_toggleSearch"
+                data-toggle="tooltip"
+                data-placement="right"
+                title="Trend Analysis"
+              >
+                <i class="fas fa-tag"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link text-dark px-4 py-3"
+                href="#/trend-analysis/value-based-search"
+                data-toggle="tooltip"
+                data-placement="right"
+                title="Value-Based Search"
+              >
+                <i class="fas fa-search"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link text-dark px-4 py-3"
+                href="#/trend-analysis/pattern-recognition"
+                data-toggle="tooltip"
+                data-placement="right"
+                title="Pattern Recognition"
+              >
+                <i class="fas fa-chart-line"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link text-dark px-4 py-3"
+                href="#/trend-analysis/correlation-matrix"
+                data-toggle="tooltip"
+                data-placement="right"
+                title="Correlation Matrix"
+              >
+                <i class="fas fa-ruler-combined"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link text-dark px-4 py-3"
+                href="#/trend-analysis/driving-factors"
+                data-toggle="tooltip"
+                data-placement="right"
+                title="Driving Factors"
+              >
+                <i class="fas fa-file-contract"></i>
+              </a>
+            </li>
+            <!-- <li class="nav-item">
+                            <a class="nav-link text-dark px-4 py-3 " href="#/trend-analysis/statistical-profile"
+                                data-toggle="tooltip" data-placement="right" title="Statistical Profile">
+                                <i class="far fa-file-alt"></i>
+                            </a>
+                        </li> -->
+            <li class="nav-item">
+              <a
+                class="nav-link text-dark px-4 py-3 active"
+                href="#/trend-analysis/work-organizer"
+                data-toggle="tooltip"
+                data-placement="right"
+                title="Work Organizer"
+              >
+                <i class="fas fa-tasks"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link text-dark px-4 py-3"
+                href="#/trend-analysis/prediction"
+                data-toggle="tooltip"
+                data-placement="right"
+                title="Prediction"
+              >
+                <i class="fab fa-hubspot"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link text-dark px-4 py-3"
+                href="#/trend-analysis/chart"
+                data-toggle="tooltip"
+                data-placement="right"
+                title="Charts"
+              >
+                <i class="far fa-chart-bar"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link text-dark px-4 py-3"
+                href="#/trend-analysis/statistical-analysis"
+                data-toggle="tooltip"
+                data-placement="right"
+                title="Statistical Analysis"
+              >
+                <i class="far fa-file-alt"></i>
+              </a>
+            </li>
+          </ul>
+        </nav>
+
+        <main
+          role="main"
+          class="container-fluid p-0 h-100"
+          style="overflow-x: hidden"
+        >
+          <template is="dom-if" if="[[Alerts]]">
+            <div
+              style="z-index: 10"
+              class="m-3 alert alert-info mb-0 alert-dismissible fade show mb-2"
+              role="alert"
+            >
+              <button
+                type="button"
+                class="close"
+                data-dismiss="alert"
+                on-click="_dismissAlert"
+                aria-label="Close"
+              >
+                <span aria-hidden="true">&times;</span>
+              </button>
+              <span id="Alerts">[[Alerts]]</span>
+            </div>
+          </template>
+          <div class="filters-container p-2 border-bottom">
+            <div class="d-flex header">
+              <div class="py-0 flex-fill lead" for="opcUA">
+                <strong>Work Organizer</strong>
+              </div>
+            </div>
+          </div>
+          <template is="dom-if" if="[[tagList]]" restamp>
+            <div class="table-container mt-2 mx-3">
+              <table
+                id="woTable"
+                class="table table-hover"
+                style="width: 100%"
+                data-page-length="15"
+              >
+                <thead>
+                  <tr>
+                    <th class="table-heading" scope="col">#</th>
+                    <th class="table-heading" scope="col">Name</th>
+                    <th class="table-heading" scope="col">Description</th>
+                    <th class="table-heading" scope="col">Node</th>
+                    <!-- <th class="table-heading" scope="col">Share Status</th>
+                    <th class="table-heading" scope="col">Owner</th> -->
+                    <th class="table-heading" scope="col">Created on</th>
+                    <th class="table-heading" scope="col">Actions</th>
+                  </tr>
+                  <tr id="filter">
+                    <th class="input-filter">#</th>
+                    <th class="input-filter">Name</th>
+                    <th class="input-filter">Description</th>
+                    <th class="input-filter">Node</th>
+                    <!-- <th class="input-filter">Share Status</th>
+                    <th class="input-filter">Owner</th> -->
+                    <th class="input-filter">Created on</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template is="dom-repeat" items="{{tagList}}" as="listItem">
+                    <tr>
+                      <th scope="row">{{listItem.id}}</th>
+                      <td>{{listItem.workflow_name}}</td>
+                      <td>{{listItem.description}}</td>
+                      <td>{{listItem.module}}</td>
+                      <!-- <td>{{listItem.share_status}}</td>
+                      <td>{{listItem.owner}}</td> -->
+                      <td>{{listItem.date_of_insertion}}</td>
+                      <td>
+                        <!-- <template
+                          is="dom-if"
+                          if="{{listItem.workflow_edit}}"
+                          restamp
+                        > -->
+                          <span
+                            data-woID$="{{listItem.workflow_id}}"
+                            data-woName$="{{listItem.workflow_name}}"
+                            class="badge badge-danger"
+                            on-click="_deleteModule"
+                          >
+                            <i class="fas fa-times"></i>
+                            Delete
+                          </span>
+                          <span
+                            data-woID$="{{listItem.workflow_id}}"
+                            data-woURL$="{{listItem.module}}"
+                            class="badge badge-primary"
+                            on-click="_loadModule"
+                          >
+                            <i class="fas fa-external-link-alt"></i>
+                            View
+                          </span>
+                          <!-- <span
+                            data-woID$="{{listItem.workflow_id}}"
+                            data-woName$="{{listItem.workflow_name}}"
+                            class="badge badge-primary"
+                            on-click="_shareModule"
+                          >
+                            <i class="fas fa-external-link-alt"></i>
+                            Share
+                          </span> -->
+                        <!-- </template> -->
+                        <!-- <template
+                          is="dom-if"
+                          if="{{listItem.workflow_view}}"
+                          restamp
+                        >
+                          <span
+                            data-woID$="{{listItem.workflow_id}}"
+                            data-woURL$="{{listItem.module}}"
+                            class="badge badge-primary"
+                            on-click="_loadModule"
+                          >
+                            <i class="fas fa-external-link-alt"></i>
+                            View
+                          </span>
+                        </template> -->
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+              <template is="dom-if" if="{{shareModule}}" restamp>
+                <div
+                  class="modal"
+                  id="modalId"
+                  tabindex="-1"
+                  role="dialog"
+                  aria-labelledby="confirmWOTitle"
+                  aria-hidden="true"
+                >
+                  <div
+                    class="modal-dialog modal-lg modal-dialog-centered"
+                    role="document"
+                  >
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="confirmWOTitle">Share Work</h5>
+                        <button
+                          type="button"
+                          class="close"
+                          data-dismiss="modal"
+                          aria-label="Close"
+                        >
+                          <span aria-hidden="true">&times;</span>
+                        </button>
+                      </div>
+                      <form id="woFormInputs" onsubmit="return false">
+                        <div class="modal-body">
+                          <div class="form-group">
+                            <label> View Level Access</label>
+                            <div class="row">
+                              <div class="col-md-8">
+                                <select
+                                  id="firstLayerAccessWO"
+                                  class="form-control"
+                                  name="users"
+                                  multiple="multiple"
+                                  style="width: 100% !important"
+                                  required
+                                >
+                                  <template
+                                    is="dom-repeat"
+                                    items="{{_response_getUsers}}"
+                                  >
+                                    <option
+                                      selected$="{{_markChecked(item.userName,getUserResourcesDetails.0.View)}}"
+                                      value="{{item.userName}}"
+                                    >
+                                      {{item.userName}}
+                                    </option>
+                                  </template>
+                                </select>
+                              </div>
+                              <div class="col-md-4">
+                                <select
+                                  id="firstLayerAccessWO_dropDown"
+                                  class="form-control"
+                                  required
+                                >
+                                  <option value="View">VIEW</option>
+                                </select>
+                              </div>
+                            </div>
+                            <span> <strong>Edit Level Access</strong> </span>
+                            <div class="row">
+                              <div class="col-md-8">
+                                <select
+                                  id="secondLayerAccesWO"
+                                  class="form-control w-100"
+                                  name="users"
+                                  multiple="multiple"
+                                  style="width: 100% !important"
+                                  required
+                                >
+                                  <template
+                                    is="dom-repeat"
+                                    items="{{_response_getUsers}}"
+                                  >
+                                    <option
+                                      selected$="{{_markChecked(item.userName,getUserResourcesDetails.1.Edit)}}"
+                                      value="{{item.userName}}"
+                                    >
+                                      {{item.userName}}
+                                    </option>
+                                  </template>
+                                </select>
+                              </div>
+                              <div class="col-md-4">
+                                <select
+                                  id="firstLayerAccessWO_dropDown1"
+                                  class="form-control"
+                                  required
+                                >
+                                  <option value="Edit">EDIT</option>
+                                </select>
+                              </div>
+                            </div>
+                            <template is="dom-if" if="{{_status_wo}}">
+                              <div
+                                class="alert alert-primary border-0 m-0 p-2 mb-3 text-center"
+                                role="alert"
+                              >
+                                {{_status_wo}}
+                              </div>
+                            </template>
+                          </div>
+                        </div>
+                        <div class="modal-footer">
+                          <div class="col-sm-6 pr-0 d-flex justify-content-end">
+                            <button
+                              type="button"
+                              on-click="_dismissWorkOrganizer"
+                              class="btn btn-secondary mr-1"
+                              data-dismiss="modal"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              id="saveWO"
+                              on-click="_saveToWorkOrganizer"
+                              type="submit"
+                              class="btn btn-primary"
+                            >
+                              Share
+                            </button>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
+        </main>
+      </div>
+    </div>
+    <global-loader>
+      <iron-ajax
+        auto
+        id="getWorkFlow"
+        url="/getWorkFlow"
+        last-response="{{tagList}}"
+        on-response="_onResponse_getWorkFlow"
+        on-error="_onError"
+      >
+      </iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        method="POST"
+        id="updateUserResourcesWorkflow"
+        url="/updateUserResourcesWorkflow"
+        handle-as="json"
+        content-type="application/json"
+        on-response="_onResponse_updateUserResourcesWorkflow"
+        on-error="_onError"
+      >
+      </iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        id="removeWorkFlow"
+        url="/removeWorkFlow/[[module_id]]"
+        on-response="_onResponse_removeWorkFlow"
+        on-error="_onError_removeWorkFlow"
+      ></iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        id="getUsers"
+        url="/getUserGroups"
+        method="GET"
+        on-response="_onResponse_getUsers"
+        headers='{"Content-Type": "application/json"}'
+      >
+      </iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        method="POST"
+        id="updateWorkflowDetail"
+        url="/updateWorkflowDetail"
+        handle-as="json"
+        content-type="application/json"
+        on-response="_onResponse_addWorkFlow"
+        on-error="_onError"
+      >
+      </iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        method="POST"
+        id="getUserResourcesWorkflow"
+        url="/getUserResourcesWorkflow"
+        last-response="{{getUserResourcesDetails}}"
+        handle-as="json"
+        content-type="application/json"
+        on-response="_onResponse_getUserResourcesWorkflow"
+        on-error="_onError"
+      >
+      </iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        method="POST"
+        id="deleteUserResourcesWorkflow"
+        url="/deleteUserResourcesWorkflow"
+        handle-as="json"
+        content-type="application/json"
+        on-response="_onResponse_addWorkFlow"
+        on-error="_onError"
+      >
+      </iron-ajax>
+    </global-loader>
+
+    <global-var name="woModuleInputs" value="{{woModuleInputs}}"></global-var>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'view-work-organizer',
+      properties: {
+        woModuleInputs: {
+          type: Object,
+          notify: true,
+          value: null,
+        },
+        addConditionalFilter: {
+          type: Boolean,
+          value: false,
+        },
+      },
+      active: function () {
+        var root = this;
+        root.woModuleInputs = {};
+        root.$.getWorkFlow.generateRequest();
+        // root.$.getUsers.generateRequest();
+      },
+   
+      deactive: function () {
+        $('#woTable').DataTable().destroy();
+        this.tagList = false;
+      },
+   
+      created: function () {
+        document.documentElement.classList.remove('in-progress');
+      },
+   
+      attached: function () {
+        gtag('event', 'Work Organizer', {
+          event_category: 'Trend Analysis',
+          event_label: window.user_id,
+          value: '',
+        });
+
+        root.this;
+        root.woModuleInputs = {};
+        this.async(function () {
+          $('[data-toggle="tooltip"]').tooltip();
+        });
+      },
+
+      ready: function () {
+        root = this;
+      },
+   
+      _dismissWorkOrganizer: function () {
+        var _root = this;
+        $(_root.$.modalId).modal('hide');
+        _root.addConditionalFilter = false;
+      },
+
+      _onResponse_getWorkFlow: function (evt) {
+        root = this;
+        // $(document).ready(function () {
+        $(function () {
+          $('#woTable thead #filter th').each(function () {
+            var title = $(this).text();
+            $(this).html(
+              '<input class="rounded" type="text" placeholder="Search ' +
+                title +
+                '" />'
+            );
+          });
+          var table = $('#woTable').DataTable({
+            responsive: true,
+            bSortCellsTop: true,
+            retrieve: true,
+          });
+          $.each($('.input-filter', table.table().header()), function () {
+            var column = table.column($(this).index());
+            $('input', this).on('keyup change', function () {
+              if (column.search() !== this.value) {
+                column.search(this.value).draw();
+              }
+            });
+          });
+        });
+        this.async(function () {
+          // $('#woTable').DataTable().destroy();
+          $('#woTable').DataTable().draw();
+        }, 300);
+      },
+   
+      _onResponse_getWorkFlowDetail: function (e) {
+        var _root = this;
+        if (e.detail.response.Status) {
+          _root.Alerts = e.detail.response.Status;
+        } else {
+          _root._response_getWorkFlowUser = e.detail.response;
+
+          _root.async(function () {
+            if (Object.values(root._response_getWorkFlowUser[1])[0]) {
+              _root.addConditionalFilter = true;
+            }
+            var modal = _root.querySelector('#modalId');
+            $('#modalId').modal('show');
+            _root.async(function () {
+              $(_root.querySelector('#firstLayerAccessWO')).select2();
+              $(_root.querySelector('#firstLayerAccessWO')).trigger('change');
+              $(_root.querySelector('#secondLayerAccesWO')).select2();
+              $(_root.querySelector('#secondLayerAccesWO')).trigger('change');
+            });
+          });
+        }
+      },
+   
+      _onResponse_getUsers: function (e) {
+        var _root = this;
+        var users = e.detail.response;
+        if (users.Status) {
+          _root._response_getUsers = [];
+        } else {
+          _root._response_getUsers = users;
+        }
+      },
+   
+      _shareModule: function (e) {
+        var _root = this;
+
+        _root.shareModule = true;
+        _root.woid = e.currentTarget.dataset.woid;
+        _root.woName = e.currentTarget.dataset.woname;
+        var workorgName =
+          'trendAnalysis_workflowOrganizer-' +
+          window.organization_id.toLowerCase() +
+          '-' +
+          e.currentTarget.dataset.woname
+            .toLowerCase()
+            .replace(/\s+/g, '')
+            .replace('-', '_');
+        // console.log(workorgName);
+        // if (_root._response_getWorkFlowUser.length > 2) {
+        //     _root.addConditionalFilter = true
+        // }
+        // _root.async(function () {
+        _root.$.getUserResourcesWorkflow.body = { resource_url: workorgName };
+        _root.$.getUserResourcesWorkflow.generateRequest();
+        var modal = _root.querySelector('#modalId');
+
+        // _root.async(function () {
+        //   $(_root.querySelector('#firstLayerAccessWO')).select2();
+        //   $(_root.querySelector('#firstLayerAccessWO')).trigger('change');
+        //   $(_root.querySelector('#secondLayerAccesWO')).select2();
+        //   $(_root.querySelector('#secondLayerAccesWO')).trigger('change');
+        // }, 300);
+        // });
+      },
+   
+      _onResponse_getUserResourcesWorkflow: function () {
+        var _root = this;
+        // _root.async(function () {
+        $(_root.querySelector('#firstLayerAccessWO')).select2();
+        $(_root.querySelector('#firstLayerAccessWO')).trigger('change');
+        $(_root.querySelector('#secondLayerAccesWO')).select2();
+        $(_root.querySelector('#secondLayerAccesWO')).trigger('change');
+        $('#modalId').modal('show');
+        // }, 300);
+      },
+   
+      _getValue(_response_getWorkFlowUser) {
+        var flag;
+        if (Object.keys(_response_getWorkFlowUser[0])[0]) {
+          if (Object.keys(_response_getWorkFlowUser[0])[0] == 'View') {
+            flag = true;
+          }
+          return flag;
+        }
+      },
+   
+      _getValueEdit(_response_getWorkFlowUser) {
+        var flag;
+        if (Object.keys(_response_getWorkFlowUser[0])[0]) {
+          if (Object.keys(_response_getWorkFlowUser[0])[0] == 'Edit') {
+            flag = true;
+          }
+
+          return flag;
+        }
+      },
+   
+      _getValueShare(_response_getWorkFlowUser) {
+        var flag;
+        if (Object.keys(_response_getWorkFlowUser[1])[0]) {
+          if (Object.keys(_response_getWorkFlowUser[1])[0] == 'View') {
+            flag = true;
+          }
+          return flag;
+        }
+      },
+   
+      _getValueEditShare(_response_getWorkFlowUser) {
+        var flag;
+        if (Object.keys(_response_getWorkFlowUser[1])[0]) {
+          if (Object.keys(_response_getWorkFlowUser[1])[0] == 'Edit') {
+            flag = true;
+          }
+
+          return flag;
+        }
+      },
+
+      _markChecked: function (str, arr) {
+        for (var i = 0; i < arr.length; i++) {
+          var str1 = String(str).toLowerCase();
+          var arr1 = String(arr[i]).toLowerCase();
+          if (str1 === arr1) {
+            return str1 === arr1;
+          }
+        }
+      },
+   
+      _markCheckedShare: function (str, arr) {
+        var array = Object.values(arr[1])[0];
+        for (var i = 0; i < array.length; i++) {
+          var str1 = String(str);
+          var arr1 = String(array[i]);
+          if (str1 === arr1) {
+            return str1 === arr1;
+          }
+        }
+        // var marckCheck = arr.find(function (e, i) {
+        //     return e.id === str
+        // });
+
+        // return !!marckCheck;
+      },
+   
+      _addCondition: function () {
+        var _root = this;
+        _root.addConditionalFilter = true;
+        _root.async(function () {
+          $(_root.querySelector('#secondLayerAccesWO')).select2();
+
+          $(_root.querySelector('#secondLayerAccesWO')).trigger('change');
+        });
+      },
+   
+      _removeCondition: function () {
+        var root = this;
+        root.addConditionalFilter = false;
+      },
+   
+      _saveAttributeResource: function (state, woName) {
+        var root = this;
+
+        var inputs = document.querySelector('#woFormInputs').elements;
+        var firstLayerAccessWOArr = [];
+        var _users_addFirstLayer = $(
+          root.querySelector('#firstLayerAccessWO')
+        ).select2('data');
+        for (var i = 0; i < _users_addFirstLayer.length; i++) {
+          firstLayerAccessWOArr.push(String(_users_addFirstLayer[i].id));
+        }
+        var secondLayerAccesWOArr = [];
+        var _users_addSecondLayer = $(
+          root.querySelector('#secondLayerAccesWO')
+        ).select2('data');
+        for (var i = 0; i < _users_addSecondLayer.length; i++) {
+          secondLayerAccesWOArr.push(String(_users_addSecondLayer[i].id));
+        }
+        secondLayerAccesWOArr.push(String(window.user_id));
+        var duplicates = firstLayerAccessWOArr.filter(function (val) {
+          return secondLayerAccesWOArr.indexOf(val) != -1;
+        });
+        if (duplicates.length > 0) {
+          root._status_wo = 'Duplicate user found';
+          root.async(function () {
+            root._status_wo = false;
+          }, 5000);
+        } else {
+          // console.log('usersArr', firstLayerAccessWOArr, secondLayerAccesWOArr);
+          var vnames = firstLayerAccessWOArr;
+          var uniquefirstLayerusersArr = [];
+          $.each(vnames, function (i, el) {
+            if ($.inArray(el, uniquefirstLayerusersArr) === -1)
+              uniquefirstLayerusersArr.push(el);
+          });
+          var enames = secondLayerAccesWOArr;
+          var uniquesecondLayerusersArr = [];
+          $.each(enames, function (i, el) {
+            if ($.inArray(el, uniquesecondLayerusersArr) === -1)
+              uniquesecondLayerusersArr.push(el);
+          });
+          var resource = woName.toLowerCase().replace(/\s+/g, '').replace('-', '_'),
+            workFlowAttributeDetails = {
+              // user_id: window.user_id,
+              workflow_name: woName,
+              resource_url:
+                'trendAnalysis_workflowOrganizer-' +
+                window.organization_id.toLowerCase() +
+                '-' +
+                resource,
+              resource_name:
+                'trendAnalysis_workflowOrganizer-' +
+                window.organization_id.toLowerCase() +
+                '-' +
+                resource,
+              description: inputs[1].value,
+              method: 'GET',
+              workflow_view: uniquefirstLayerusersArr,
+              workflow_edit: uniquesecondLayerusersArr,
+            };
+          if (state === 'update') {
+            root.$.updateUserResourcesWorkflow.body = workFlowAttributeDetails;
+            root.$.updateUserResourcesWorkflow.generateRequest();
+          }
+
+          root.shareModule = false;
+          $('#modalId').modal('hide');
+        }
+      },
+   
+      _saveToWorkOrganizer: function (e) {
+        var root = this;
+        var workflow_name;
+        for (var i = 0; i < root.tagList.length; i++) {
+          if (root.woid == root.tagList[i].workflow_id) {
+            workflow_name = root.tagList[i].workflow_name;
+          }
+        }
+        root._saveAttributeResource('update', workflow_name);
+        // var UserList = [];
+        // var ShareType = [];
+        // var form = root.querySelector('#woFormInputs').checkValidity();
+        // if (form) {
+        //   // UserList = [String(window.user_id)]
+        //   // ShareType = ['EDIT']
+        //   var firstLayerAccessWOGroup = $(
+        //     root.querySelector('#firstLayerAccessWO')
+        //   ).select2('data');
+        //   for (var i = 0; i < firstLayerAccessWOGroup.length; i++) {
+        //     UserList.push(String(firstLayerAccessWOGroup[i].id));
+        //     if (UserList.length > 0) {
+        //       ShareType.push(
+        //         root.querySelector('#firstLayerAccessWO_dropDown').value
+        //       );
+        //     }
+        //   }
+
+        //   if (root.addConditionalFilter) {
+        //     var firstLayerAccessWOGroup = $(
+        //       root.querySelector('#secondLayerAccesWO')
+        //     ).select2('data');
+        //     for (var i = 0; i < firstLayerAccessWOGroup.length; i++) {
+        //       UserList.push(String(firstLayerAccessWOGroup[i].id));
+        //       if (UserList.length > 0) {
+        //         ShareType.push(
+        //           root.querySelector('#firstLayerAccessWO_dropDown1').value
+        //         );
+        //       }
+        //     }
+        //   }
+        //   for (var i = 0; i < root.tagList.length; i++) {
+        //     if (root.woid == root.tagList[i].workflow_id) {
+        //       workflow_name = root.tagList[i].workflow_name;
+        //     }
+        //   }
+        //   var share_status;
+        //   if (UserList.length > 0) {
+        //     share_status = 'Shared';
+        //   } else {
+        //     share_status = 'Private';
+        //   }
+
+        //   let hasDuplicate = UserList.some((val, i) => UserList.indexOf(val) !== i);
+        //   console.log(hasDuplicate);
+        //   if (hasDuplicate) {
+        //     root._status_wo = 'Duplicate user found';
+        //     root.async(function () {
+        //       root._status_wo = false;
+        //     }, 5000);
+        //   } else if (!hasDuplicate) {
+        //     var bodyData = {
+        //       workflow_name: workflow_name,
+        //       UserList: UserList,
+        //       ShareType: ShareType,
+        //       shared_status: share_status,
+        //     };
+        //     root.$.updateWorkflowDetail.body = bodyData;
+        //     root.$.updateWorkflowDetail.generateRequest();
+        //   }
+        // }
+      },
+   
+      _onResponse_addWorkFlow: function (e) {
+        var root = this;
+        if (e.detail.response.Status) {
+          $('#modalId').modal('hide');
+          root.Alerts = e.detail.response.Status;
+          root.async(function () {
+            root.Alerts = false;
+          }, 1000);
+          root.$.getWorkFlow.generateRequest();
+        }
+      },
+   
+      _loadModule: function (e) {
+        gtag('event', 'Work Organizer - view', {
+          event_category: 'Trend Analysis',
+          event_label: window.user_id,
+          value: '',
+        });
+
+        var root = this;
+        root.woModuleInputs = null;
+        var workID = e.currentTarget.dataset.woid;
+        for (var i = 0; i < root.tagList.length; i++) {
+          if (workID == root.tagList[i].workflow_id) {
+            root.woModuleInputs = root.tagList[i];
+          }
+        }
+        switch (e.currentTarget.dataset.wourl) {
+          case 'Trend Search':
+            window.location.href = '#/trend-analysis/tag-search';
+            break;
+          case 'Charts':
+            window.location.href = '#/trend-analysis/chart';
+            break;
+          case 'Value Based Search':
+            window.location.href = '#/trend-analysis/value-based-search';
+            break;
+        }
+      },
+   
+      _deleteModule: function (e) {
+        // gtag('event', 'Work Organizer - Delete', {
+        //   event_category: 'Trend Analysis',
+        //   event_label: window.user_id,
+        //   value: '',
+        // });
+
+        var root = this;
+        var moduleID = e.currentTarget.dataset.woid;
+        root.module_id = moduleID;
+        root.$.removeWorkFlow.generateRequest();
+        root.$.deleteUserResourcesWorkflow.body = {
+          resource_url:
+            'trendAnalysis_workflowOrganizer-' +
+            window.organization_id.toLowerCase() +
+            '-' +
+            e.currentTarget.dataset.woname.toLowerCase(),
+        };
+        root.$.deleteUserResourcesWorkflow.generateRequest();
+      },
+   
+      _onResponse_removeWorkFlow: function (e) {
+        var root = this;
+        if (e.detail.status) {
+          root.Alerts = e.detail.response.status;
+          root.async(function () {
+            root.Alerts = false;
+          }, 5000);
+          root.tagList = false;
+          root.$.getWorkFlow.generateRequest();
+        }
+      },
+   
+      _dismissAlert: function () {
+        root = this;
+        root.Alerts = false;
+      },
+   
+      _onResponse_updateUserResourcesWorkflow: function () {
+        var root = this;
+        root.tagList = false;
+        root.$.getWorkFlow.generateRequest();
+      },
+    });
+  </script>
+</dom-module>

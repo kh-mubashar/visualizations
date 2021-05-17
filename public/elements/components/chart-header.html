@@ -1,0 +1,206 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html"/>
+<link rel="import" href="./forms/form-warning.html"/>
+
+<dom-module id="chart-header">
+  <template>
+    <style>
+        ::content {
+            width: 100%;
+        }
+
+        ::content .chart-header-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        ::content .custom-switch {
+            line-height: 31px;
+        }
+
+        ::content .custom-switch label {
+            margin-top: 4px;
+        }
+
+        .wind-rose-frequency > div {
+            padding: 4px 8px;
+            border-radius: 2px;
+            background: #eee;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+
+        .wind-rose-frequency > div.active {
+            background: #bababa;
+        }
+
+        .custom-checkbox {
+            position: relative;
+        }
+
+        .custom-checkbox input {
+            visibility: hidden;
+            margin-right: 8px;
+        }
+
+        .custom-checkbox-switcher {
+            position: relative;
+            margin-bottom: 0;
+            vertical-align: top;
+        }
+
+        .custom-checkbox-switcher::before {
+            position: absolute;
+            top: .25rem;
+            display: block;
+            height: 1rem;
+            content: "";
+            background-color: #fff;
+            border: #adb5bd solid 1px;
+            left: -2.25rem;
+            width: 1.75rem;
+            pointer-events: all;
+            border-radius: .5rem;
+        }
+
+        .custom-checkbox-switcher::after {
+            position: absolute;
+            display: block;
+            content: "";
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: 50% 50%;
+            top: calc(.25rem + 2px);
+            left: calc(-2.25rem + 2px);
+            width: calc(1rem - 4px);
+            height: calc(1rem - 4px);
+            background-color: #adb5bd;
+            border-radius: .5rem;
+            transition: transform .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out, -webkit-transform .15s ease-in-out;
+        }
+
+        .custom-checkbox input:checked + .custom-checkbox-switcher::before {
+            color: #fff;
+            background-color: #007bff;
+            border-color: #007bff;
+            left: -2.25rem;
+            width: 1.75rem;
+            pointer-events: all;
+            border-radius: .5rem;
+        }
+
+        .custom-checkbox input:checked + .custom-checkbox-switcher::after {
+            background-color: #fff;
+            transform: translateX(.75rem);
+            top: calc(.25rem + 2px);
+            left: calc(-2.25rem + 2px);
+            width: calc(1rem - 4px);
+            height: calc(1rem - 4px);
+            border-radius: .5rem;
+        }
+
+    </style>
+    <div>
+
+      <div class="chart-header-container">
+        <div class="d-flex">
+          <template is="dom-if" if="[[isWindRoseFrequencyVisible]]" restamp>
+            <div class="d-flex wind-rose-frequency ml-4 align-items-center">
+              <span class="mr-4">Frequency</span>
+              <div class$="{{getFrequencyClasses('hrs', windRoseFrequency)}}" data-name="hrs"
+                   on-click="_onFrequencyChange"><span>hrs</span></div>
+              <div class$="{{getFrequencyClasses('day', windRoseFrequency)}}" data-name="day"
+                   on-click="_onFrequencyChange"><span>day</span></div>
+              <div class$="{{getFrequencyClasses('week', windRoseFrequency)}}" data-name="week"
+                   on-click="_onFrequencyChange"><span>week</span></div>
+            </div>
+          </template>
+        </div>
+        <template is="dom-if" if="[[isWaterFallSwitchVisible]]">
+          <div class="custom-switch ml-auto mr-auto">
+            <span class="mr-4">Tabular</span>
+            <label class="custom-checkbox">
+              <input type="checkbox" checked="{{isChartView}}" on-change="_onChartViewChange">
+              <span class="custom-checkbox-switcher"></span>
+            </label>
+            <span>Chart</span>
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'chart-header',
+      properties: {
+        isChartView: {
+          type: Boolean,
+          value: true,
+          notify: true
+        },
+        isWaterFallSwitchVisible: {
+          type: Boolean,
+          value: false
+        },
+        isSetAxisVisible: {
+          type: Boolean,
+          value: true
+        },
+        isWindRoseFrequencyVisible: {
+          type: Boolean,
+          value: false
+        },
+        windRoseFrequency: {
+          type: String,
+          value: '',
+          notify: true
+        },
+        urlParams: {
+          type: Object,
+          value: {},
+          observer: '_onChangeUrlParams'
+        },
+        isSavePopupVisible: {
+          type: Boolean,
+          value: false
+        },
+        chartSettings: {
+          type: Object,
+          value: {}
+        },
+        warning: {
+          type: String,
+          value: ''
+        }
+      },
+      _onLabelParentClick(e) {
+      },
+      _onLabelChildClick(e) {
+      },
+      _onChangeUrlParams(urlParams) {
+        if (!_.isEmpty(urlParams)) {
+          this.async(function () {
+            this.set('isChartView', urlParams.isChartView)
+            if (urlParams.windRoseFrequency) this.set('windRoseFrequency', urlParams.windRoseFrequency)
+          })
+        }
+      },
+      _onChartViewChange(e) {
+        this.set('isChartView', e.target.checked)
+        if (!_.isEmpty($('.show-datalabels-checkbox'))) $('.show-datalabels-checkbox').prop( "checked", false )
+        this.fire('change-header', {isChartView: this.isChartView})
+      },
+      _onFrequencyChange(e) {
+        this.set('windRoseFrequency', e.currentTarget.dataset.name)
+        this.fire('change-header', {windRoseFrequency: this.windRoseFrequency})
+      },
+      getFrequencyClasses(val) {
+        return val === this.windRoseFrequency ? 'active' : ''
+      },
+      _getChartSettings() {
+        this.fire('settings')
+      }
+    })
+  </script>
+</dom-module>

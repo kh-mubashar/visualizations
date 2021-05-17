@@ -1,0 +1,87 @@
+<link rel="import" href="../../../bower_components/polymer/polymer.html"/>
+<link rel="import" href="../../components/forms/operator.html"/>
+<link rel="import" href="../../components/forms/categories.html"/>
+<link rel="import" href="../../components/forms/btn-operator.html"/>
+
+<dom-module id="stacked-column-chart-filters">
+  <template>
+    <style></style>
+    <div class="stacked-column-chart-filters">
+
+      <!--      OPERATOR BUTTON -->
+      <btn-operator operator-shown="{{operatorShown}}"></btn-operator>
+
+      <!--      OPERATOR  OPTIONS -->
+      <template is="dom-if" if="[[operatorShown]]">
+        <operator-form operator="{{operator}}" url-params="[[urlParams]]"></operator-form>
+      </template>
+
+      <!--      AXIS CATEGORIES   -->
+      <categories-form
+        tag-list="{{tagList}}"
+        categories="{{categories}}"
+        on-change-categories="_onCategoriesChange"
+        has-unit-filter="true"
+        stacked="true"
+      >
+      </categories-form>
+    </div>
+
+  </template>
+
+  <script>
+    Polymer({
+      is: 'stacked-column-chart-filters',
+      properties: {
+        operatorShown: {
+          type: Boolean,
+          value: false,
+          observer: '_onOperatorShowChange'
+        },
+        operator: {
+          type: Object,
+          value: {
+            operator: 'AVG',
+            period: '1',
+            periodUnit: 'Day'
+          },
+          notify: true,
+          observer: '_onOperatorChange'
+        },
+        tagList: {
+          type: Array,
+          value: []
+        },
+        urlParams: {
+          type: Object,
+          value: {},
+          observer: '_onChangeUrlParams'
+        }
+      },
+      attached() {
+        this.set('categories', [{ label: '', tags: [{label: '', tag: ''}, {label: '', tag: ''}] }])
+      },
+      _onChangeUrlParams(urlParams){
+        if (!_.isEmpty(urlParams) && urlParams.selectedChart === 'stacked_column') {
+          this.async(function() {
+            this.set('categories', urlParams.categories)
+            this.set('operatorShown', urlParams.operatorShown)
+            this.fire('change-filters', {categories: urlParams.categories})
+          })
+        }
+      },
+      _onOperatorChange(operator) {
+        this.fire('change-filters', {operator, operatorShown: this.operatorShown})
+      },
+      _onCategoriesChange(e, categories) {
+        e.stopPropagation()
+        this.fire('change-filters', {categories})
+      },
+      _onOperatorShowChange() {
+        if (this.operator) {
+          this._onOperatorChange(this.operator)
+        }
+      }
+    })
+  </script>
+</dom-module>

@@ -1,0 +1,474 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html"/>
+<link rel="import" href="./filters/filters-pie.html"/>
+<link rel="import" href="./filters/filters-scatter.html"/>
+<link rel="import" href="./filters/column-filters.html"/>
+<link rel="import" href="./filters/stacked-column-filters.html"/>
+<link rel="import" href="./filters/combo-column-filters.html"/>
+<link rel="import" href="./filters/bar-filters.html"/>
+<link rel="import" href="./filters/wind-rose-filters.html"/>
+<link rel="import" href="./filters/filters-box-whisker.html"/>
+<link rel="import" href="./filters/water-fall-filters.html"/>
+
+<dom-module id="chart-filters">
+  <template>
+    <form onsubmit="return false" on-validate="_validateForm">
+      <div class="form-group mb-2">
+        <div class="form-group InfluenceFactorTagInputs d-flex align-items-center mb-2 pb-1">
+          <select
+            class="form-control"
+            placeholder="Select chart"
+            autocomplete="off"
+            value="{{selectedChart::change}}"
+            required>
+            <template is="dom-repeat" items="{{_getChartTypeList(total)}}" as="item" restamp>
+              <option selected$="{{chartSelected(selectedChart, item.value)}}" value="[[item.value]]">
+                [[item.label]]
+              </option>
+            </template>
+          </select>
+        </div>
+      </div>
+      <div class="form-group mb-2 mt-2">
+        <label class="col-form-label py-1">Search Range</label>
+        <input class="form-control datepicker-input" type="text"/>
+      </div>
+      <template is="dom-if" if="[[_isShowValuesVisible]]" restamp>
+        <label class="d-flex align-items-center text-nowrap mt-4">
+          <input
+            class="show-datalabels-checkbox"
+            type="checkbox"
+            on-change="_changeShowDataLabels"
+            checked="{{_showDataLabels}}">
+          <span class="d-inline-block pl-2"> Show data labels</span>
+        </label>
+      </template>
+      <template is="dom-if" if="[[_isShowValuesComboVisible]]" restamp>
+        <label class="d-flex align-items-center text-nowrap mt-4">
+          <input
+            type="checkbox"
+            on-change="_changeShowLineDataLabels"
+            checked="{{_showLineDataLabels}}">
+          <span class="d-inline-block pl-2"> Show line data labels</span>
+        </label>
+        <label class="d-flex align-items-center text-nowrap mt-4">
+          <input
+            type="checkbox"
+            on-change="_changeShowDataLabels"
+            checked="{{_showDataLabels}}">
+          <span class="d-inline-block pl-2"> Show clustered column data labels </span>
+        </label>
+      </template>
+      <template is="dom-if" if="[[chartSelected(selectedChart, 'scatter')]]" restamp>
+        <filters-scatter tag-list="{{tagsList}}"
+                         on-change-filters="_onFilterChange"
+                         url-params="[[initParams]]">
+        </filters-scatter>
+      </template>
+      <template is="dom-if" if="[[chartSelected(selectedChart, 'column')]]" restamp>
+        <column-chart-filters tag-list="{{tagsList}}"
+                              on-change-filters="_onFilterChange"
+                              url-params="[[initParams]]">
+        </column-chart-filters>
+      </template>
+      <template is="dom-if" if="[[chartSelected(selectedChart, 'bar')]]" restamp>
+        <bar-chart-filters tag-list="{{tagsList}}"
+                           on-change-filters="_onFilterChange"
+                           url-params="[[initParams]]">
+        </bar-chart-filters>
+      </template>
+      <template is="dom-if" if="[[chartSelected(selectedChart, 'stacked_column')]]" restamp>
+        <stacked-column-chart-filters tag-list="{{tagsList}}"
+                                      url-params="[[initParams]]"
+                                      on-change-filters="_onFilterChange">
+        </stacked-column-chart-filters>
+      </template>
+      <template is="dom-if" if="[[chartSelected(selectedChart, 'combo_column')]]" restamp>
+        <combo-column-chart-filters tag-list="{{tagsList}}"
+                                    url-params="[[initParams]]"
+                                    on-change-filters="_onFilterChange">
+        </combo-column-chart-filters>
+      </template>
+      <template is="dom-if" if="[[chartSelected(selectedChart, 'pie')]]" restamp>
+        <filters-pie tag-list="{{tagsList}}"
+                     type="pie"
+                     url-params="[[initParams]]"
+                     on-change-filters="_onFilterChange">
+        </filters-pie>
+      </template>
+      <template is="dom-if" if="[[chartSelected(selectedChart, 'radar')]]" restamp>
+        <filters-pie tag-list="{{tagsList}}"
+                     type="radar"
+                     url-params="[[initParams]]"
+                     on-change-filters="_onFilterChange">
+        </filters-pie>
+      </template>
+      <template is="dom-if" if="[[chartSelected(selectedChart, 'wind_rose')]]" restamp>
+        <wind-rose-filters tag-list="{{tagsList}}"
+                           on-change-filters="_onFilterChange"
+                           url-params="[[initParams]]">
+        </wind-rose-filters>
+      </template>
+      <template is="dom-if" if="[[chartSelected(selectedChart, 'waterfall')]]" restamp>
+        <water-fall-filters tag-list="{{tagsList}}"
+                            on-change-filters="_onFilterChange"
+                            url-params="[[initParams]]">
+        </water-fall-filters>
+      </template>
+      <template is="dom-if" if="[[chartSelected(selectedChart, 'box_whisker')]]" restamp>
+        <filters-box-whisker tag-list="{{tagsList}}"
+                             type="box_whisker"
+                             url-params="[[initParams]]"
+                             on-change-filters="_onFilterChange">
+        </filters-box-whisker>
+      </template>
+      <form-warning message="{{warning}}"></form-warning>
+      <div class="d-flex flex-row mb-3">
+        <button type="submit" class="btn btn-primary btn-sm btn-block" on-click="_generateChart"
+                disabled="[[isRendering]]">
+          Generate Chart
+        </button>
+      </div>
+    </form>
+  </template>
+  <script>
+    Polymer({
+      is: 'chart-filters',
+      properties: {
+        initParams: {
+          type: Object,
+          value: {},
+          observer: '_onChangeInitParams'
+        },
+        idx: {
+          type: Number,
+          value: 0,
+        },
+        total: {
+          type: Number,
+          value: 0
+        },
+        tagsList: {
+          type: Array,
+          value: []
+        },
+        selectedChart: {
+          type: String,
+          value: 'scatter',
+          observer: '_onSelectedChartChange'
+        },
+        chartSettings: {
+          type: Object,
+          value: {}
+        },
+        warning: {
+          type: String,
+          value: ''
+        },
+        isRendering: {
+          type: Boolean,
+          value: false
+        }
+      },
+      attached() {
+        this._createDatepicker();
+        this._setInitParamsAsync(this.initParams)
+        this._initShowDataLabels()
+        this._initDataLabelsCheckboxes()
+      },
+      chartSelected(selectedChart, value) {
+        return selectedChart === value
+      },
+      _onChangeInitParams(params) {
+        this._setInitParamsAsync(params)
+      },
+      _setInitParamsAsync(params) {
+        this.async(() => {
+          this._setInitParams(params)
+        })
+      },
+      _onFilterChange(e, params) {
+        e.stopPropagation()
+        if (!_.isEmpty(params)) {
+          this.set('chartOptions', {...this.chartOptions, ...params})
+          this.fire('change-filters', this._getParams())
+        }
+      },
+      _generateChart() {
+        if (this._isFormValid()) {
+          this._initDataLabelsCheckboxes()
+          this.fire('change-filters', this._getParams())
+          this.fire('generate', this.idx)
+        }
+      },
+      _getParams() {
+        return {
+          filterParams: {
+            filters: {
+              startDate: this.startDateRange,
+              endDate: this.endDateRange
+            },
+            ...this.chartOptions,
+            selectedChart: this.selectedChart,
+          },
+          index: this.idx
+        }
+      },
+      _getDateRangeInput() {
+        return this.$$('.datepicker-input')
+      },
+      _createDatepicker() {
+        const root = this;
+        const dp = $(root._getDateRangeInput()).data('daterangepicker')
+        if (dp) return;
+        $(function () {
+          $(root._getDateRangeInput()).daterangepicker(
+            {
+              timePicker: true,
+              showDropdowns: true,
+              timePicker24Hour: true,
+              timePickerSeconds: false,
+              alwaysShowCalendars: true,
+              linkedCalendars: false,
+              maxDate: moment
+                .utc()
+                .utcOffset(Number(window.current_server_time))
+                .startOf('minutes'),
+              opens: 'right',
+              ranges: {
+                Today: [
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .format('YYYY-MM-DD 00:00:00'),
+                  moment.utc().utcOffset(Number(window.current_server_time)),
+                ],
+                'Last 24 Hours': [
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .subtract(1, 'days'),
+                  moment.utc().utcOffset(Number(window.current_server_time)),
+                ],
+                'Last 7 Days': [
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .subtract(6, 'days'),
+                  moment.utc().utcOffset(Number(window.current_server_time)),
+                ],
+                'Last 30 Days': [
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .subtract(29, 'days'),
+                  moment.utc().utcOffset(Number(window.current_server_time)),
+                ],
+                'This Month': [
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .startOf('month'),
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .endOf('month'),
+                ],
+                'Last Month': [
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .subtract(1, 'month')
+                    .startOf('month'),
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .subtract(1, 'month')
+                    .endOf('month'),
+                ],
+              },
+              startDate: moment
+                .utc()
+                .utcOffset(Number(window.current_server_time))
+                .subtract(1, 'week'),
+              endDate: moment
+                .utc()
+                .utcOffset(Number(window.current_server_time))
+                .startOf('minutes'),
+              locale: {
+                format: 'YYYY-MM-DD HH:mm',
+                applyLabel: 'Confirm Dates',
+              },
+            },
+            (start, end, label) => {
+              root.startDateRange = start.format('YYYY-MM-DD HH:mm:ss');
+              root.endDateRange = end.format('YYYY-MM-DD HH:mm:ss');
+              root.fire('change-filters', root._getParams())
+            }
+          );
+          if (!_.isEmpty(root.initParams)) {
+            root._setInitParams(root.initParams)
+          }
+        });
+      },
+      _isFormValid() {
+        // validate form based on html5 validation (required...)
+        if (!this.$$('form').checkValidity()) return false
+        if (this.selectedChart === 'scatter' && this.chartOptions) {
+          const list = this.chartOptions.categories.map(c => c.tag)
+          const isInvalid = this._hasDuplicates(list)
+          this.warning = isInvalid ? 'Tag Mapping Error' : ''
+          if (isInvalid) return false
+        }
+
+        return true
+      },
+      _hasDuplicates(array = []) {
+        return (new Set(array)).size !== array.length
+      },
+      _setInitParams(params) {
+        const selectedChart = _.get(params, 'selectedChart')
+        this.set('selectedChart', selectedChart ? selectedChart : this.selectedChart)
+        const startDate = _.get(params, 'filters.startDate')
+        const endDate = _.get(params, 'filters.endDate')
+        const datepicker = $(this._getDateRangeInput()).data('daterangepicker')
+        if (startDate && endDate && datepicker) {
+          datepicker.setStartDate(startDate);
+          datepicker.setEndDate(endDate);
+          this.startDateRange = startDate
+          this.endDateRange = endDate
+        } else {
+          const currentDate = new Date();
+          this.endDateRange = moment
+            .utc(currentDate)
+            .utcOffset(Number(window.current_server_time))
+            .startOf('minutes')
+            .format('YYYY-MM-DD HH:mm:ss');
+          const start = Date.parse(currentDate) - 604800000;
+          this.startDateRange = moment
+            .utc(start)
+            .utcOffset(Number(window.current_server_time))
+            .startOf('minutes')
+            .format('YYYY-MM-DD HH:mm:ss');
+        }
+        this.fire('change-filters', this._getParams())
+      },
+      _onSelectedChartChange(newChartType, oldChartType) {
+        this.selectedChart = newChartType
+        this._initShowDataLabels()
+        this._initDataLabelsCheckboxes()
+        this.fire('change-filters', this._getParams())
+        this.fire('change-selected', {selected: newChartType, index: this.idx})
+      },
+      _getDefaultChartTypeList() {
+        return [
+          {
+            value: 'scatter',
+            label: 'Scatter Chart'
+          },
+          {
+            value: 'column',
+            label: 'Column Chart'
+          },
+          {
+            value: 'bar',
+            label: 'Bar Chart'
+          },
+          {
+            value: 'stacked_column',
+            label: 'Stacked Column Chart'
+          },
+          {
+            value: 'combo_column',
+            label: 'Combo: Column and Line'
+          },
+          {
+            value: 'pie',
+            label: 'Pie Chart'
+          },
+          {
+            value: 'radar',
+            label: 'Radar Chart'
+          },
+          {
+            value: 'wind_rose',
+            label: 'Wind Rose'
+          },
+          {
+            value: 'box_whisker',
+            label: 'Box and Whisker'
+          },
+          {
+            value: 'waterfall',
+            label: 'Waterfall'
+          }
+        ]
+      },
+      _getChartTypeList(len) {
+        if (len > 1) {
+          return this._getDefaultChartTypeList().filter(t => !['waterfall', 'pie'].includes(t.value))
+        }
+        return this._getDefaultChartTypeList()
+      },
+      _validateForm() {
+        this.$$('form').reportValidity();
+      },
+      _changeShowLineDataLabels(e) {
+        this._showLineDataLabels = _.get(e, 'target.checked')
+        const type = 'line'
+        const el = $($('.charts-graph-list .highcharts-container')[this.idx]).parent()
+        this._showHideDataLabel(el, type, this._showLineDataLabels)
+      },
+      _changeShowDataLabels(e) {
+        this._showDataLabels = _.get(e, 'target.checked')
+        const type = this._getDataLabelType(this.selectedChart)
+        if (this.selectedChart === 'pie') {
+          const that = this
+          $('.charts-graph-list .highcharts-container').each(function (i) {
+            const el = $(this).parent()
+            that._showHideDataLabel(el, type, that._showDataLabels)
+          })
+        } else {
+          const el = $($('.charts-graph-list .highcharts-container')[this.idx]).parent()
+          this._showHideDataLabel(el, type, this._showDataLabels)
+        }
+      },
+      _showHideDataLabel(el, type, enabled) {
+        if (_.isEmpty(el) && _.isEmpty(el.highcharts())) return
+        const chart = $(el).highcharts()
+        chart.update({
+          plotOptions: {
+            [type]: {
+              dataLabels: {enabled}
+            }
+          }
+        })
+      },
+      _getDataLabelType(selected) {
+        switch (selected) {
+          case 'stacked_column':
+            return 'column'
+          case 'pie':
+            return 'pie'
+          case 'radar':
+            return 'line'
+          case 'waterfall':
+            return 'waterfall'
+          case 'bar':
+            return 'bar'
+          case 'column':
+          case 'combo_column':
+            return 'column'
+        }
+      },
+      _initShowDataLabels() {
+        this._isShowValuesVisible = ['bar', 'column', 'stacked_column', 'pie', 'radar', 'waterfall'].includes(this.selectedChart)
+        this._isShowValuesComboVisible = ['combo_column'].includes(this.selectedChart)
+      },
+      _initDataLabelsCheckboxes() {
+        this._showLineDataLabels = false
+        this._showDataLabels = false
+
+      }
+    })
+  </script>
+</dom-module>

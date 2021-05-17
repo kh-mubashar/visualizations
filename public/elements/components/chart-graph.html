@@ -1,0 +1,1034 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html"/>
+<link rel="import" href="./chart-header.html"/>
+<link rel="import" href="./set-axis.html"/>
+
+<dom-module id="chart-graph">
+  <style>
+      .export-hint {
+          display: none;
+      }
+
+      .export-hint div{
+          margin-bottom: 100px;
+      }
+
+      ::content .w-33 {
+          width: 33%;
+      }
+
+      ::content .hidden {
+          display: none;
+      }
+
+      ::content .waterfall {
+          max-height: 60vh;
+          background: red;
+          display: none;
+      }
+
+      ::content .water-fall-tabular-container {
+          margin: 24px 0;
+          max-height: 60vh;
+          overflow-y: scroll;
+      }
+
+      ::content .water-fall-tabular-container div:first-child,
+      ::content .water-fall-tabular-container div:last-of-type {
+          background: #751c80;
+      }
+
+      ::content .water-fall-tabular-container div:first-child span,
+      ::content .water-fall-tabular-container div:last-of-type span {
+          color: #fff;
+      }
+
+      ::content .water-fall-data-item span {
+          padding: 8px;
+          border: 1px solid #005fff;
+          font-weight: 600;
+          border-bottom: none;
+      }
+
+      ::content .water-fall-data-item span:last-child {
+          border-left: none;
+      }
+
+      input.dates-range {
+          width: 100%;
+          margin: 13.8px 0;
+          background-color: transparent;
+          -webkit-appearance: none;
+      }
+
+      input.dates-range:focus {
+          outline: none;
+      }
+
+      input.dates-range::-webkit-slider-runnable-track {
+          background: rgba(73, 76, 78, 0.5);
+          width: 100%;
+          height: 8.4px;
+          cursor: pointer;
+      }
+
+      input.dates-range::-webkit-slider-thumb {
+          margin-top: -5px;
+          width: 16px;
+          height: 16px;
+          background: #ffffff;
+          border: 1px solid #000000;
+          cursor: pointer;
+          -webkit-appearance: none;
+      }
+
+      input.dates-range:focus::-webkit-slider-runnable-track {
+          background: rgba(73, 76, 78, 0.5);
+      }
+
+      input.dates-range::-moz-range-track {
+          background: rgba(73, 76, 78, 0.5);
+          width: 100%;
+          height: 8.4px;
+          cursor: pointer;
+      }
+
+      input.dates-range::-moz-range-thumb {
+          width: 16px;
+          height: 16px;
+          background: #ffffff;
+          border: 1px solid #000000;
+          cursor: pointer;
+      }
+
+      input.dates-range::-ms-track {
+          background: rgba(73, 76, 78, 0.5);
+          border-width: 14.8px 0;
+          color: transparent;
+          width: 100%;
+          height: 8.4px;
+          cursor: pointer;
+      }
+
+      input.dates-range::-ms-fill-lower {
+          background: rgba(73, 76, 78, 0.5);
+      }
+
+      input.dates-range::-ms-fill-upper {
+          background: rgba(73, 76, 78, 0.5);
+      }
+
+      input.dates-range::-ms-thumb {
+          width: 16px;
+          height: 16px;
+          background: #ffffff;
+          border: 1px solid #000000;
+          cursor: pointer;
+          margin-top: 0;
+      }
+
+      input.dates-range:focus::-ms-fill-lower {
+          background: #ffffff;
+      }
+
+      input.dates-range:focus::-ms-fill-upper {
+          background: #ffffff;
+      }
+
+      .dates-pretty-range span {
+          font-size: 12px;
+      }
+
+      .range-input-wrapper {
+
+      }
+
+      .date-range-value {
+        position: absolute;
+        top: -20px;
+        left: 0;
+        display: block;
+        width: 120px;
+        font-size: 12px;
+        text-align: center;
+      }
+
+      .expand-button {
+        cursor: pointer;
+        position: absolute;
+        z-index: 99;
+        right: 60px;
+        top: 11px;
+        font-size: 15px;
+      }
+  </style>
+  <template>
+    <div class="export-hint">
+      <div>Exporting...</div>
+      <button on-click="_cancelPdfExport">Cancel</button>
+    </div>
+    <template is="dom-if" if="[[trendAlerts]]" restamp>
+      <div style="z-index: 10" class="alert alert-info mb-0 alert-dismissible fade show mb-2" role="alert">
+        <button type="button" class="close" data-dismiss="alert" on-click="_dismissAlert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <span id="trendAlerts">[[trendAlerts]]</span>
+      </div>
+    </template>
+    <div class$="{{_getContainerClass(idx, total)}}">
+      <div class="expand-button" on-click="_onExpand"><i class$="{{_getExpandClassName(expanded, total)}}"></i></div>
+      <div class="row">
+        <chart-header is-time-view="{{isTimeView}}"
+                      is-chart-view="{{isChartView}}"
+                      is-switch-visible="[[isSwitchVisible]]"
+                      is-water-fall-switch-visible="{{_chartSelected(selectedChart, 'waterfall')}}"
+                      is-set-axis-visible="[[isSetAxisVisible]]"
+                      is-wind-rose-frequency-visible="{{_chartSelected(selectedChart, 'wind_rose')}}"
+                      on-change-header="_onHeaderChange"
+                      url-params="[[urlParams]]"
+                      chart-settings="[[_chartSettingsForSave]]"
+                      wind-rose-frequency="{{windRoseFrequency}}"
+        >
+        </chart-header>
+      </div>
+      <div class="row flex-grow-1">
+        <div id$="[[_chartContainerID]]" class$="{{_getChartRootClass(isChartView, selectedChart)}}"></div>
+        <template is="dom-if" if="{{_showTabularView(isChartView, selectedChart)}}" restamp>
+          <div class="water-fall-tabular-container w-100">
+            <template is="dom-repeat" items="{{waterFallData}}" as="item" restamp>
+              <div class="water-fall-data-item d-flex">
+                <span class="flex-grow-1">[[item.name]]</span>
+                <span style="flex-basis: 100px;">[[item.value]]</span>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+      <template is="dom-if" if="{{_showWaterFAllRange(waterFallRange, selectedChart)}}" restamp>
+        <div class="row mt-4 position-relative">
+          <div class="range-input-wrapper position-relative ml-5 mr-5 w-100">
+            <span class="date-range-value" style$="{{_getDateRangeValueStyle(waterFallRange, waterFallRageIndex)}}">{{_getWFThumbValue(waterFallRange, waterFallRageIndex)}}</span>
+            <input type="range" class="dates-range" min="0"
+                   max="{{_getWaterFallRangeLength(waterFallRange)}}" value$="{{waterFallRageIndex}}"
+                   on-input="_onWaterFallRageIndexChange">
+          </div>
+
+          <div class="dates-pretty-range d-flex justify-content-between align-items-center w-100">
+            <template is="dom-repeat" items="{{waterFallPrettyRange}}" as="item" restamp>
+              <span>[[item]]</span>
+            </template>
+          </div>
+        </div>
+      </template>
+      <set-axis
+        axes-data="[[_AxesData]]"
+        is-visible="[[_isSetAxisVisible]]"
+        axes-alerts="[[axesAlerts]]"
+        on-close="_onCloseSetAxis"
+        on-reset="_resetAxes"
+        on-update="_updateAxes"
+      >
+      </set-axis>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'chart-graph',
+      properties: {
+        //todo use it to pass params to the header
+        // headers: {
+        //   type: Object,
+        //   value: {}
+        // },
+        options: {
+          type: Object,
+          value: {},
+          observer: '_onOptionsChange'
+        },
+        idx: {
+          type: Number,
+          value: 0,
+          observer: '_onIndexChange'
+        },
+        total: {
+          type: Number,
+          value: 0,
+          observer: '_onTotalChange'
+        },
+        woRecord: {
+          type: Object,
+          value: {},
+        },
+        chartTitle: {
+          type: String,
+          value: '',
+          observer: '_onTitleChange'
+        },
+        isTimeView: {
+          type: Boolean,
+          value: true
+        },
+        isChartView: {
+          type: Boolean,
+          value: true,
+          observer: '_onChartViewChange'
+        },
+        isSwitchVisible: {
+          type: Boolean,
+          value: true
+        },
+        isWaterFallTabularView: {
+          type: Boolean,
+          value: false
+        },
+        windRoseFrequency: {
+          value: 'hrs',
+          type: String,
+          observer: '_windRoseFrequencyChange'
+        },
+        isSetAxisVisible: {
+          type: Boolean,
+          value: true
+        },
+        selectedChart: {
+          type: String,
+          value: 'scatter',
+          observer: '_onSelectedChartChange'
+        },
+        _chartContainerID: {
+          type: String,
+          value: undefined
+        },
+        currentChart: {
+          type: Object,
+          value: {}
+        },
+        waterFallRageIndex: {
+          type: 'String',
+          value: 0
+        },
+        totalCharts: {
+          type: Number,
+          value: 0
+        },
+        expanded: {
+          type: Boolean,
+          value: false,
+          observer: '_onExpandedChange'
+        },
+        renderTrigger: {
+          type: Number,
+          value: Date.now(),
+          observer: '_onRenderTriggerChange'
+        }
+      },
+      created() {
+        this._renderChart = _.debounce(this._createChart, 100)
+      },
+      attached() {
+        this._isSetAxisVisible = false
+        this.set('_AxesData', [])
+        this._originAxesData = []
+        this._renderChart(this._getDefaultChartOptions())
+        this._navigatorOffset = null
+        this._asyncTasks = []
+      },
+      _getContainerClass(index, total) {
+        let classes = 'container-fluid position-relative'
+        if (this.selectedChart !== 'pie') {
+          classes += ' d-flex flex-column h-100'
+        }
+        return classes;
+      },
+      _getExpandClassName(expanded, total) {
+        if (total < 2) { return '' }
+        if(expanded) {
+          return `fas fa-compress-arrows-alt`
+        } else {
+          return `fas fa-expand-arrows-alt`
+        }
+      },
+      _onExpandedChange(val) {
+        this.async(function () {
+          this._renderChart(this._getOptions())
+        }, 100)
+      },
+      _onExpand () {
+        this.fire('expand-chart', { index: this.idx })
+      },
+      _onHeaderChange(e, data) {
+        e.stopPropagation()
+        this.fire('change-headers', {index: this.idx, filterParams: data})
+      },
+      _onOptionsChange(options) {
+        if (_.isEmpty(options)) {
+          return this._renderChart({})
+        }
+        this._originAxesData = []
+        return this._renderChart(options)
+      },
+      _onIndexChange(index) {
+        if (index !== undefined) this._chartContainerID = `graphsContainer-${index}`
+      },
+      _dismissAlert: function () {
+        this.trendAlerts = false;
+        this.tagMappingAlerts = false;
+      },
+      _chartSelected(selectedChart, value) {
+        return selectedChart === value
+      },
+      _getWaterFallRangeLength(val) {
+        return val.length - 1
+      },
+      _showWaterFAllRange(val, chart) {
+        return val.length && chart === 'waterfall'
+      },
+      _windRoseFrequencyChange(val) {
+        if (!this.generate) return
+        // TODO: Refactor this
+        this._renderChart(this.generate(val), true)
+
+      },
+      _onWaterFallRageIndexChange(e) {
+        this.waterFallRageIndex = e.target.value
+        if (!this.generate || !this.waterFallRange) return
+        const series = this.generate(this.waterFallRange[this.waterFallRageIndex], _.get(this.woRecord, ['settings', 'list', this.idx, 'filters', 'totalTagName'])).series[0]
+        const data = series.data
+        if (!this.isChartView) {
+          this.waterFallData = data.map(i => ({...i, value: _.floor(i.y, 1)}))
+        } else {
+          this.currentChart.series[0].setData(data)
+          this.currentChart.series[0].name = series.name
+        }
+      },
+      _onChartViewChange(val) {
+        if (!this.generate || !this.waterFallRange) return
+        const range = this.generate(this.waterFallRange[this.waterFallRageIndex], _.get(this.woRecord, ['settings', 'list', this.idx, 'filters', 'totalTagName']))
+        const data = _.get(range, 'series.0.data')
+        if (!data) return
+        if (!val) {
+          this.waterFallData = data.map(i => ({...i, value: _.floor(i.y, 1)}))
+        } else {
+          this.currentChart.series[0].setData(data)
+          this._renderChart(undefined, true)
+        }
+      },
+      _getChartRootClass(isChartView, chart) {
+        return !isChartView && chart === 'waterfall' ? 'hidden' : 'w-100'
+      },
+      _showTabularView(isChartView, chart) {
+        return !isChartView && chart === 'waterfall'
+      },
+      _getDefaultChartOptions() {
+        return {
+          title: {
+            text: this.chartTitle
+          },
+          series: [],
+          credits: {
+            enabled: false
+          },
+          exporting: {
+            enabled: false
+          }
+        }
+      },
+
+      // TODO: Refactor this
+      async _createChart(options, silent = false) {
+
+        if (!this._chartContainerID) return
+        this.set('_AxesData', [])
+        this.fire('render-start', this.idx)
+        this._destroyCharts()
+        const container = document.getElementById(this._chartContainerID)
+        if (!container) return
+        const getChartOptions = _.get(window, ['chartApp', 'options', this.selectedChart])
+        const params = _.get(this.woRecord, ['settings', 'list', this.idx, 'filters'])
+
+        // TODO: Refactor this
+        if (['waterfall'].includes(this.selectedChart)) {
+          if (_.isEmpty(_.get(params, 'initialValueTag'))) {
+            options = this._getDefaultChartOptions()
+            _.set(options, 'title.text', '')
+          } else {
+            const {generate, range, prettyRange, getWaterfallExport} = await getChartOptions(params)
+            this.generate = generate
+            this.getWaterfallExport = getWaterfallExport
+            this.waterFallRange = range
+            this.waterFallPrettyRange = prettyRange
+            options = generate(undefined, params.totalTagName)
+            this.waterFallData = _.get(options, 'series.0.data', []).map(i => ({...i, value: _.floor(i.y, 1)}))
+            this.waterFallRageIndex = 0
+            $('input.dates-range').val(0)
+          }
+        }
+        // TODO: Refactor this
+        if (!silent && ['wind_rose'].includes((this.selectedChart))) {
+          if (!_.get(params, 'windSpeedTag') || !_.get(params, 'windDirectionTag')) {
+            options = this._getDefaultChartOptions()
+            _.set(options, 'title.text', '')
+          } else {
+            const {generate} = await getChartOptions({
+              ...params,
+              org_id: window.organization_id
+            })
+            this.generate = generate
+            options = generate()
+          }
+        }
+
+
+
+        options = Array.isArray(options) ? options : [options]
+        const len = options.length
+
+        container.classList.add('h-100')
+        if (this.selectedChart === 'pie') {
+          container.classList.add('d-flex')
+          container.classList.add('flex-wrap')
+        }
+
+        const cWeight = container.offsetWidth - 20
+        const cHeight = container.offsetHeight - 2
+
+        const {width, height} = this._getChartSize({len, cWeight, cHeight, minHeight: 300, minWidth: 400})
+        options.forEach((option, i) => {
+          const id = `${this._chartContainerID}-${i}`
+          const chart = document.createElement('div')
+          chart.setAttribute('id', id)
+          chart.style.width = `${cWeight}px`
+          chart.style.height = `${cHeight}px`
+          if (this.selectedChart === 'pie') {
+            chart.style.width = `${width}px`
+            chart.style.height = `${height}px`
+          }
+          container.appendChild(chart)
+
+          const root = this
+          const axesButton = {
+            text: 'Set Axis',
+            onclick: function () {
+              root._showSetAxis();
+            }
+          }
+          option.exporting = {
+            enabled: true,
+            buttons: {
+              contextButton: {
+                menuItems: [
+                  "viewFullscreen",
+                  "printChart",
+                  "separator",
+                  "downloadPNG",
+                  "downloadJPEG",
+                  "downloadPDF",
+                  "downloadSVG",
+                  "separator",
+                  "downloadCSV",
+                  "downloadXLS",
+                  // "viewData"
+                ]
+              },
+            }
+          }
+          option.time = {useUTC: true, timezoneOffset: 0}
+          option = this._replaceDefaultExport(option)
+
+          if (!this.expanded && this.totalCharts > 1) {
+            // remove Full Screen View
+            option.exporting.buttons.contextButton.menuItems.splice(0, 1)
+          }
+
+          if (this.totalCharts === 1 || _.get(this.woRecord, 'settings.global.isTimeView')) {
+            if (['scatter', 'column', 'bar', 'stacked_column', 'combo_column', 'waterfall'].includes(this.selectedChart)) {
+              // add Set Axis button
+              option.exporting.buttons.contextButton.menuItems.splice(2, 0, axesButton)
+            }
+          }
+
+          //TODO: Refactor this
+          // if (this.selectedChart !== 'pie') option.exporting = {enabled: true}
+          if (_.isEmpty(option.series)) option.exporting = {enabled: false}
+          if (['column', 'stacked_column', 'bar', 'combo_column'].includes(this.selectedChart)) {
+            if (this.totalCharts > 1 && !this.expanded) {
+              option.navigator = { ...option.navigator, enabled: false }
+              option.rangeSelector = { ...option.rangeSelector, enabled: false }
+              option.scrollbar = { enabled: false }
+            } else if ((this.totalCharts > 1 && this.expanded) && !_.get(this.woRecord, 'settings.global.isTimeView')) {
+              option.navigator = { ...option.navigator, enabled: false }
+              option.rangeSelector = { ...option.rangeSelector, enabled: false }
+              option.scrollbar = { enabled: false }
+            } else if (!_.get(this.woRecord, 'settings.global.isTimeView')) {
+              option.navigator = { ...option.navigator, enabled: false }
+              option.rangeSelector = { ...option.rangeSelector, enabled: false }
+              option.scrollbar = { enabled: false }
+            } else {
+              option.scrollbar = { enabled: true }
+              option.rangeSelector = {
+                ...option.rangeSelector,
+                enabled: true
+              }
+              option.navigator = { ...option.navigator, enabled: true }
+            }
+          }
+
+          if (this.selectedChart !== 'pie') {
+            option.title = {text: this.chartTitle}
+          }
+          option.credits = {enabled: false}
+
+          if (_.isEmpty(option.series)) option.exporting = {enabled: false}
+          if (this.chartTitle === '') _.set(option, 'chart.marginTop', 50)
+
+          const callback = () => {
+            root.fire('render-finish', this.idx)
+          }
+          const emptyTags = _.get(option, 'emptyTags')
+
+          if (!_.isEmpty(emptyTags)) {
+            const {getAvailableTagsDates} = window.chartApp.api
+            const org_id = window.organization_id
+            const prepareData = (org_id, tags) => {
+              tags = tags.map(t => `${org_id}_${t.toLowerCase()}`).join(',')
+              return {org_id, tags}
+            }
+
+            getAvailableTagsDates(prepareData(org_id, emptyTags)).then(tagsStats => {
+              const warnings = tagsStats.map(v => {
+                const {tag, start_date, end_date} = v
+                const len = org_id.length || -1
+                const formatDate = date => moment(date).format('YYYY-MM-DD HH:mm:ss')
+                return `${tag.slice(len+1).toUpperCase()} Tag data is not available for the specified date range.
+              It is available from ${formatDate(start_date)} to ${formatDate(end_date)} `
+              }, '')
+              this.fire('warning', warnings)
+            })
+          }
+
+          option = this._addExportPdf(option)
+
+
+
+          if (option.highStock) {
+            this.currentChart = Highcharts.stockChart(id, option, callback)
+          } else {
+            this.currentChart = Highcharts.chart(id, option, callback)
+          }
+
+          this.charts.push(this.currentChart)
+        })
+      },
+      _cancelPdfExport () {
+        this._navigatorOffset = null
+        window.chartApp.helpers.hideLoader()
+        if (Array.isArray(this._asyncTasks)) this._asyncTasks.forEach(task => this.cancelAsync(task))
+      },
+      async _moveNavigator () {
+        const chart = this.currentChart
+        if (_.isEmpty(chart.navigator)) return
+        if (this._navigatorOffset === null) {
+          const opt = {chart: {animation: true}}
+          chart.update(opt)
+          return
+        }
+        const asyncTask = this.async(async function() {
+          if (this._navigatorOffset === null) return
+
+          // already in progress, skip processing
+          if (this._navigatorProgres.has(this._navigatorOffset)) return
+          this._navigatorProgres.add(this._navigatorOffset)
+
+          const {max, dataMin, dataMax} = chart.xAxis[0].getExtremes()
+
+          const isLastChart = max === dataMax
+
+          // add current chart to pdf
+          const {_getChartCanvas, _addChartToPdf} = window.chartApp.helpers
+
+          const canvas = await _getChartCanvas(chart)
+          _addChartToPdf(canvas, this._navigatorOffset, this._exportedPdf, isLastChart)
+
+          if (this._navigatorOffset === null) return
+          this._navigatorOffset++
+          const newMin = dataMin + this._navigatorOffset * this._navigatorStep
+          if (newMin >= dataMax) {
+            this._navigatorOffset = null
+            this._exportedPdf.save(this._getFilename()+'.pdf')
+            window.chartApp.helpers.hideLoader()
+            return
+          }
+          const newMax = Math.min(newMin + this._navigatorStep, dataMax)
+          chart.xAxis[0].setExtremes(newMin, newMax)
+
+        }, 500)
+        this._asyncTasks.push(asyncTask)
+
+      },
+
+      _addExportPdf(option) {
+        // start moving navigator
+        if (!_.get(option, 'navigator.enabled')) return option
+
+        const root = this
+        const btnExportPdf = {
+          text: 'Download PDF',
+          onclick: function () {
+            const opt = {chart: {animation: false}}
+            root.currentChart.update(opt)
+
+            root.async(function() {
+              const {min, max, dataMin, dataMax} = root.currentChart.xAxis[0].getExtremes()
+              root._navigatorStep = Math.trunc(Math.abs(max - min))
+              root._navigatorOffset = 0
+              root._navigatorProgres = new Set()
+              root._asyncTasks = []
+
+              const {jsPDF} = window.jspdf
+              root._exportedPdf = new jsPDF({
+                orientation: "portrait",
+                unit: "mm",
+                format: "a4"
+              })
+
+              window.chartApp.helpers.showLoader()
+
+
+              // todo start move navigator
+              if (dataMin === min && dataMax === max) {
+                root._moveNavigator()
+              } else {
+                root.currentChart.xAxis[0].setExtremes(dataMin, dataMin + root._navigatorStep)
+              }
+            }, 100)
+          }
+        }
+        if (_.has(option, 'exporting.buttons.contextButton.menuItems')) {
+          option.exporting.buttons.contextButton.menuItems.splice(9, 0, btnExportPdf)
+        }
+
+        _.set(option, 'chart.events.redraw', function() {
+          if (root._navigatorOffset === null)  return
+          root._moveNavigator()
+        })
+
+        return option
+      },
+
+      _getChartSize({len, cWeight, cHeight, minHeight, minWidth}) {
+        let height = cHeight
+        let width = cWeight
+        if (len > 1) {
+          height = Math.trunc(cHeight / 2)
+        }
+        if (len === 2) {
+          width = Math.trunc(cWeight / 2)
+        }
+        if (len > 2) {
+          width = Math.trunc(cWeight / 3)
+          if (width < minWidth) {
+            width = Math.trunc(cWeight / 2)
+          }
+        }
+
+        width = width < minWidth ? cWeight : width
+        height = height < minHeight ? cHeight : height
+        return {width, height}
+      },
+      _destroyCharts() {
+        (this.charts || []).forEach(chart => {
+          if (_.get(chart, 'renderer')) {
+            chart.destroy()
+          }
+        })
+        this.charts = []
+        const container = document.getElementById(this._chartContainerID)
+        if (container) {
+          container.innerHTML = ''
+        }
+      },
+      _onSelectedChartChange(chartType) {
+        //todo remove rendered chart and add empty chart
+        this._destroyCharts()
+        const options = this._getDefaultChartOptions()
+        this._renderChart(options)
+        this.set('selectedChart', chartType)
+        this.set('_AxesData', [])
+        this._originAxesData = []
+        // reset filters state
+        this.isSetAxisVisible = true
+        this.isSwitchVisible = true
+        this.waterFallRange = []
+        this.waterFallPrettyRange = []
+        if (['scatter', 'pie', 'radar', 'wind_rose', 'box_whisker', 'waterfall'].includes(chartType)) {
+          this.isSetAxisVisible = false
+          this.isSwitchVisible = false
+        }
+      },
+      _onTotalChange(newTotal, oldTotal) {
+        if (oldTotal && newTotal !== oldTotal) {
+          if (newTotal === 2) {
+            this.async(function () {
+              this._renderChart(this._getOptions())
+            }, 100)
+          }
+        }
+      },
+      _onRenderTriggerChange() {
+        this.async(function () {
+          this._renderChart(this._getOptions())
+        }, 100)
+      },
+      _onTitleChange(title) {
+        this.async(function () {
+          this._renderChart(this._getOptions())
+        }, 100)
+      },
+      _getOptions() {
+        return _.isEmpty(this.options) ? this._getDefaultChartOptions() : this.options
+      },
+      _getDateRangeValueStyle(range,  rangeIndex) {
+        const newVal = Number(((rangeIndex) * 100) / (range.length - 1));
+        return `left: calc(${newVal}% + (${-50 - newVal * 0.15}px))`
+      },
+      _getWFThumbValue(range, rangeIndex) {
+        let periodUnit = _.get(this.woRecord, ['settings', 'list', this.idx, 'filters', 'operator', 'periodUnit'])
+        if (!_.get(this.woRecord, ['settings', 'list', this.idx, 'filters', 'operatorShown'])) {
+          periodUnit = null
+        }
+        switch(periodUnit) {
+          case('Month'):
+            return moment(range[rangeIndex]).format('MMM YYYY')
+          case('Day'):
+            return moment(range[rangeIndex]).format('D. MMM YYYY')
+          default:
+            return moment(range[rangeIndex]).format('D. MMM YYYY HH:mm')
+        }
+      },
+      _getAxesDataFromChart (chart) {
+        const tagAxes = []
+        for (let i = 0; i < chart.series.length; i++) {
+          if (!chart.series[i].name.includes('Navigator')) {
+            if (chart.series[i].visible && !chart.series[i].userOptions.hiddenAxis) {
+              tagAxes.push({
+                tagName: chart.series[i].name,
+                min: chart.series[i].yAxis.min,
+                max: chart.series[i].yAxis.max,
+                tagColor: chart.series[i].color,
+                index: i
+              });
+            }
+          }
+        }
+        return tagAxes
+      },
+      _showSetAxis() {
+        const chart = this.currentChart
+        this.axesAlerts = false
+        if (_.isEmpty(this._AxesData)) {
+          const tagAxes = this._getAxesDataFromChart(chart)
+          if (tagAxes.length > 0) {
+            if (_.isEmpty(this._originAxesData)) this._originAxesData = _.cloneDeep(tagAxes)
+            this.set('_AxesData', tagAxes)
+          } else {
+            this.set('_AxesData', [])
+          }
+        }
+        this._isSetAxisVisible = true
+      },
+      _onCloseSetAxis() {
+        this._isSetAxisVisible = false
+      },
+      _resetAxes(e) {
+        e.stopPropagation()
+        this.set('_AxesData', false)
+        if (_.get(this._originAxesData, 'length') > 0) {
+          this.set('_AxesData', _.cloneDeep(this._originAxesData))
+        }
+      },
+      _updateAxes(e, newAxes) {
+        e.stopPropagation()
+        this.set('_AxesData', newAxes)
+        this.axesAlerts = false
+        const chart = this.currentChart
+        for (let i = 0; i < newAxes.length; i++) {
+
+            const minValue = Number(_.get(newAxes[i], 'min'))
+            const maxValue = Number(_.get(newAxes[i], 'max'))
+
+            if (minValue < maxValue) {
+              const index = newAxes[i].index
+              chart.series[index].yAxis.update({
+                // endOnTick: false,
+                // startOnTick: false,
+                showLastLabel: true,
+                showFirstLabel: true,
+                floor: minValue,
+                softMin: minValue,
+                ceiling: maxValue,
+                softMax: maxValue,
+              });
+              this._isSetAxisVisible = false
+            } else {
+              this.axesAlerts = 'Axis out of Range'
+              return false
+            }
+        }
+      },
+      _exportCSV(rows) {
+        const delimiter = ','
+        const csvContent = "data:text/csv;charset=utf-8,"
+          + rows.map(e => e.join(delimiter)).join("\n")
+        this._downloadFile(csvContent, 'csv')
+      },
+      _exportToXls(rows) {
+        window.zipcelx({
+          filename: this._getFilename(),
+          sheet: {
+            data: rows.map(row => row.map(column => ({
+                type: typeof column === 'number' ? 'number' : 'string',
+                value: column
+              })
+            ))
+          }
+        })
+      },
+      _getColumnTagsRows (chart) {
+        const tags = chart.series.reduce((acc, val) => {
+          if (_.get(val, 'userOptions.group') === 'nav') return acc
+          let tag = _.get(val, 'userOptions.yAxis', '')
+          tag = tag.replace(/_axis$/,'')
+          return [...acc, tag]
+        }, ['Tags'])
+        const rows = chart.getDataRows(true)
+        rows.splice(0, 1, tags)
+        return rows
+      },
+      _getPieTagsRows(category, data) {
+        const rows = data.map(tag => {
+          const {name, y, positive} = tag
+          const value = positive ? y : y * (-1)
+          return [name, value]
+        })
+        return [['Category', moment(category).utc().local(true).format('YYYY-MM-DD HH:mm:ss')], ...rows]
+      },
+      _getWaterfallTagsRows() {
+        const exportData = this.getWaterfallExport(_.get(this.woRecord, ['settings', 'list', this.idx, 'filters', 'totalTagName']))
+        return _.flatten(exportData.map(d => {
+          const rows = d.map(tag => {
+            const {name, y} = tag
+            return [name, y]
+          })
+          return [['Category', d[0].category], ...rows, ['', '']]
+        }))
+      },
+      _getBoxWhiskersRows(data) {
+        const rows = [['Category', "low", "q1", "median", "q3", "high"]]
+        data.forEach(s => {
+          const v = _.get(s, 'data[0].options', {})
+          rows.push([s.name, v.low, v.q1, v.median, v.q3, v.high])
+        })
+        return rows
+      },
+
+
+      _downloadFile(content, ext) {
+        const encodedUri = encodeURI(content)
+        const link = document.createElement("a")
+        link.setAttribute("href", encodedUri)
+        link.setAttribute("download", this._getFilename() + '.' + ext)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      },
+      _getFilename() {
+        return 'Chart - ' + moment().format('YYYY-MM-DD HH:mm:ss')
+      },
+      _replaceDefaultExport(option) {
+        const root = this
+        const btnPieExportCsv = {
+          text: 'Download CSV',
+          onclick: function () {
+            const category = _.get(this, 'series.0.userOptions.name')
+            const data = _.get(this, 'series.0.data', [])
+            const rows = root._getPieTagsRows(category, data)
+            root._exportCSV(rows)
+          }
+        }
+        const btnPieExportXls = {
+          text: 'Download XLS',
+          onclick: function () {
+            const category = _.get(this, 'series.0.userOptions.name')
+            const data = _.get(this, 'series.0.data', [])
+            const rows = root._getPieTagsRows(category, data)
+            root._exportToXls(rows)
+          }
+        }
+        const btnColumnExportXls = {
+          text: 'Download XLS',
+          onclick: function () {
+            const rows = root._getColumnTagsRows(this)
+            root._exportToXls(rows)
+          }
+        }
+        const btnColumnExportCsv = {
+          text: 'Download CSV',
+          onclick: function () {
+            const rows = root._getColumnTagsRows(this)
+            root._exportCSV(rows)
+          }
+        }
+        const btnBoxWhiskerExportXls = {
+          text: 'Download XLS',
+          onclick: function () {
+            const data = _.get(this, 'series', [])
+            const rows = root._getBoxWhiskersRows(data)
+            root._exportToXls(rows)
+          }
+        }
+        const btnBoxWhiskerExportCsv = {
+          text: 'Download CSV',
+          onclick: function () {
+            const data = _.get(this, 'series', [])
+            const rows = root._getBoxWhiskersRows(data)
+            root._exportCSV(rows)
+          }
+        }
+
+
+        const btnWaterfallExportCsv = {
+          text: 'Download CSV',
+          onclick: function () {
+            const rows = root._getWaterfallTagsRows()
+            root._exportCSV(rows)
+          }
+        }
+
+        const btnWaterfallExportXls = {
+          text: 'Download XLS',
+          onclick: function () {
+            const rows = root._getWaterfallTagsRows()
+            root._exportToXls(rows)
+          }
+        }
+
+        if (['waterfall'].includes(this.selectedChart)) {
+          option.exporting.buttons.contextButton.menuItems.splice(8, 2, btnWaterfallExportCsv, btnWaterfallExportXls)
+        }
+
+        if (['pie'].includes(this.selectedChart)) {
+          option.exporting.buttons.contextButton.menuItems.splice(8, 2, btnPieExportCsv, btnPieExportXls)
+        }
+        if (['column'].includes(this.selectedChart)) {
+          option.exporting.buttons.contextButton.menuItems.splice(8, 2, btnColumnExportXls, btnColumnExportCsv)
+        }
+
+        if (['box_whisker'].includes(this.selectedChart)) {
+          option.exporting.buttons.contextButton.menuItems.splice(8, 2, btnBoxWhiskerExportXls, btnBoxWhiskerExportCsv)
+        }
+
+        return option
+      }
+
+    })
+  </script>
+</dom-module>

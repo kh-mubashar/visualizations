@@ -1,0 +1,144 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html"/>
+
+<dom-module id="set-axis">
+  <template>
+    <style></style>
+    <div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Update Axis</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <template is="dom-if" if="[[!_axesData.0]]" restamp>
+              No Tags Found!
+            </template>
+            <form onsubmit="return false">
+              <template is="dom-if" if="[[_axesData]]" restamp>
+                <template is="dom-repeat" items="{{_axesData}}" as="tagAxes">
+                  <div class="form-row">
+                    <div class="col-7">
+                      <label class="col-form-label">Tag Name</label>
+                      <input
+                        readonly
+                        type="text"
+                        class="form-control"
+                        placeholder="Series Name"
+                        value$="[[tagAxes.tagName]]"
+                      />
+                    </div>
+                    <div class="col">
+                      <label class="col-form-label">Min </label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        placeholder="Min"
+                        value="{{tagAxes.min::change}}"
+                      />
+                    </div>
+                    <div class="col">
+                      <label class="col-form-label">Max </label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        placeholder="Max"
+                        value="{{tagAxes.max::change}}"
+                      />
+                    </div>
+                  </div>
+                </template>
+                <template is="dom-if" if="[[_axesData.0]]" restamp>
+                  <div class="text-muted">
+                    <small>Note: Axis of updated graph might vary slightly from entered values in few instances.</small>
+                  </div>
+                </template>
+              </template>
+            </form>
+            <template is="dom-if" if="[[axesAlerts.length]]" restamp>
+              <div
+                style="z-index: 10; margin-top: 1rem"
+                class="alert alert-info mb-0 alert-dismissible fade show mb-2"
+                role="alert">
+                <span>[[axesAlerts]]</span>
+              </div>
+            </template>
+          </div>
+
+          <div class="d-flex justify-content-between m-3">
+            <div>
+              <template is="dom-if" if="[[_axesData.0]]" restamp>
+                <button type=" button" class="btn btn-secondary" on-click="_resetAxes"> Reset</button>
+              </template>
+            </div>
+            <div>
+              <button type="button" class="btn btn-light" data-dismiss="modal"> Close</button>
+              <template is="dom-if" if="[[_axesData.0]]" restamp>
+                <button type="button" class="btn btn-primary" on-click="_updateTagAxes"> Update</button>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </template>
+
+  <script>
+    Polymer({
+      is: 'set-axis',
+      properties: {
+        isVisible: {
+          type: Boolean,
+          value: false,
+          observer: '_onChangeVisibility'
+        },
+        axesData: {
+          type: Array,
+          value: [],
+          observer: '_onChangeAxesData'
+        },
+        axesAlerts: {
+          type: String,
+          value: '',
+        }
+      },
+      attached() {
+        this.set('_axesData', [])
+        this.modal = $(this.$$('.modal'))
+        const root = this
+        this.modal.on('hidden.bs.modal', function () {
+          root._close()
+        })
+      },
+      _show() {
+        this.set('_axesData', _.cloneDeep(this.axesData))
+        this.modal && this.modal.modal('show')
+      },
+      _hide() {
+        this.modal && this.modal.modal('hide')
+      },
+      _onChangeVisibility(val) {
+        if (val) {
+          this._show()
+        } else {
+          this._hide()
+        }
+      },
+      _resetAxes() {
+        this.fire('reset')
+      },
+      _updateTagAxes() {
+        this.fire('update', _.cloneDeep(this._axesData))
+      },
+      _close() {
+        this.fire('close')
+      },
+      _onChangeAxesData(data) {
+        this.set('_axesData', _.cloneDeep(data))
+      }
+    })
+  </script>
+</dom-module>

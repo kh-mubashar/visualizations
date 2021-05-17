@@ -1,0 +1,17 @@
+FROM node:14-buster
+
+COPY package.json /app/
+
+WORKDIR /app
+
+RUN npm i && npm i polymer-cli@1.9.11
+
+COPY . /app/
+
+RUN npm run build
+
+RUN rm -fr ./public && \
+    cp -r  ./build/iridium/public . && \
+    rm -fr ./build
+
+CMD ["node", "server/app.js"]

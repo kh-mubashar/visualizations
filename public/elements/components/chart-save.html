@@ -1,0 +1,182 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html"/>
+
+<dom-module id="chart-save">
+  <template>
+    <style></style>
+    <!-- Modal -->
+    <div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Save Work</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <template is="dom-if" if="[[!_updateFormInputs]]" restamp>
+              <div class="form-group">
+                <label>Name</label>
+                <input required type="text" class="form-control" placeholder="Enter Name" value="{{woName::change}}"/>
+              </div>
+              <div class="form-group">
+                <label>Description</label>
+                <textarea class="form-control" rows="3" value="{{woDescription::change}}"></textarea>
+              </div>
+            </template>
+            <template is="dom-if" if="{{_status_wo}}">
+              <div class="alert alert-primary border-0 m-0 p-2 mb-3 text-center" role="alert">
+                {{_status_wo}}
+              </div>
+            </template>
+            <template is="dom-if" if="[[_updateFormInputs]]" restamp>
+              <div class="form-group">
+                <label>Name</label>
+                <input readonly type="text" class="form-control" value="[[woName]]"/>
+              </div>
+
+              <div class="form-group">
+                <label>Description</label>
+                <textarea class="form-control" rows="3" value="{{woDescription::change}}"></textarea>
+              </div>
+              <br/>
+              <hr/>
+            </template>
+          </div>
+          <div class="modal-footer">
+            <template is="dom-if" if="[[_updateFormInputs]]">
+              <div class="custom-control custom-switch ml-3 mb-2 col-sm-6">
+                <label class="custom-control-label"
+                       style="line-height: 1.5rem;"
+                       on-click="_saveNewWorkOrganizer"
+                >
+                  Save As
+                </label>
+              </div>
+            </template>
+            <div class="col-sm-6 pr-0 d-flex justify-content-end">
+              <button type="button" class="btn btn-secondary mr-1" data-dismiss="modal"> Cancel</button>
+              <template is="dom-if" if="[[!_updateFormInputs]]">
+                <button on-click="_saveToWorkOrganizer" type="button" class="btn btn-primary">Save</button>
+              </template>
+              <template is="dom-if" if="[[_updateFormInputs]]">
+                <button on-click="_saveToWorkOrganizer" type="button" class="btn btn-primary">Update</button>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'chart-save',
+      properties: {
+        isVisible: {
+          type: Boolean,
+          value: false,
+          observer: '_onChangeVisibility'
+        },
+        options: {
+          type: Object,
+          value: {},
+        },
+        _updateFormInputs: {
+          type: Boolean,
+          value: false
+        },
+        woName: {
+          type: String,
+          value: ''
+        },
+        woDescription: {
+          type: String,
+          value: ''
+        },
+        woRecord: {
+          type: Object,
+          value: {},
+          observer: '_onChangeWoRecord'
+        },
+        module: {
+          value: 'Charts',
+          type: String
+        }
+      },
+      created() {
+        this._workflowId = null
+      },
+      attached() {
+        this.modal = $(this.$$('.modal'))
+        const root = this
+        this.modal.on('hidden.bs.modal', function () {
+          root._onClose()
+        })
+      },
+      _show() {
+        this.modal.modal('show')
+        // const isChartFormValid = document.getElementById('graphForm').checkValidity()
+        // isChartFormValid ? this.modal.modal('show') : this._showWarning('Work Organizer Tags List Empty!')
+        // this.isVisible = false
+
+      },
+      _onClose() {
+        this.fire('close')
+      },
+      _hide() {
+        this.modal.modal('hide')
+      },
+      _onChangeVisibility(val) {
+        val && this._show()
+      },
+      _saveNewWorkOrganizer() {
+        this._updateFormInputs = false;
+      },
+      async _saveToWorkOrganizer() {
+        this._hide()
+        this.fire('settings')
+        let shareStatus = false
+        const {saveInWorkOrganizer, updateInWorkOrganizer} = window.chartApp.api
+        if (!saveInWorkOrganizer) return
+        if (this.woName.length === 0) return this._showWarning('Work Organizer Name can not be Empty!')
+        let workOrganizerParams = {
+          workflow_name: this.woName,
+          module: this.module,
+          description: this.woDescription,
+          timezone_minute: Number(window.current_server_time),
+          share_status: shareStatus,
+          settings: this.woRecord.settings,
+        }
+        let response
+        // update setting
+        const workflowId = this.woRecord.workflow_id || this._workflowId
+        if (this._updateFormInputs && workflowId) {
+          workOrganizerParams.workflow_id = workflowId
+          response = await updateInWorkOrganizer(workOrganizerParams)
+        } else {
+          response = await saveInWorkOrganizer(workOrganizerParams)
+        }
+
+        if (response && response.status) {
+          this._showWarning(response.status)
+          if (response.status === 'Added successfully') {
+            const {workflow} = response
+            this._workflowId = workflow.workflow_id
+            this._updateFormInputs = true;
+          }
+        }
+      },
+      _showWarning(message) {
+        this.fire('save', message);
+      },
+      _onChangeWoRecord(value) {
+        if (value && value.workflow_id) {
+          this._updateFormInputs = true;
+          this.woName = value.workflow_name
+          this.woDescription = value.description
+        }
+      }
+    })
+  </script>
+</dom-module>

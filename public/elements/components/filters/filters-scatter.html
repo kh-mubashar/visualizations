@@ -1,0 +1,100 @@
+<link rel="import" href="../../../bower_components/polymer/polymer.html"/>
+<dom-module id="filters-scatter">
+  <template>
+    <style></style>
+    <div class="scatter-axes">
+      <!--      AXES LIST   -->
+      <template is="dom-repeat" items="{{categories}}" as="category" restamp>
+        <label class="col-form-label py-1">[[category.label]]</label>
+        <div class="d-flex align-items-center">
+          <input
+            list="tagListDropdown"
+            class="form-control"
+            placeholder="Search/Add Tags"
+            autocomplete="off"
+            data-index$="[[index]]"
+            value$="[[category.tag]]"
+            on-change="_changeTag"
+            required/>
+          <template is="dom-if" if="[[_showRemove(index, categories.length)]]">
+            <i data-index$="[[index]]"
+               class="float-right fas fa-times-circle text-dark p-2 mb-1"
+               on-click="_removeTag">
+            </i>
+          </template>
+        </div>
+      </template>
+
+      <!--      ADD TAG BUTTON   -->
+      <div class="form-group mt-4 cursor-pointer d-inline-block" on-click="_addTag">
+        <i class="fas fa-plus-circle form-icon"></i>
+        <span class="p-1">Add tag</span>
+      </div>
+
+      <!--      DROPDOWN LIST HELPER   -->
+      <datalist id="tagListDropdown" restamp>
+        <template is="dom-repeat" items="{{tagList}}" as="item" restamp>
+          <option value="[[item.tag_name]]">[[item.description]]</option>
+        </template>
+      </datalist>
+    </div>
+
+  </template>
+
+  <script>
+    Polymer({
+      is: 'filters-scatter',
+      properties: {
+        tagList: {
+          type: Array,
+          value: []
+        },
+        urlParams: {
+          type: Object,
+          value: {},
+          observer: '_onChangeUrlParams'
+        }
+      },
+      attached() {
+        this.categories = [{tag: '', label: 'X Axis'}, {tag: '', label: 'Y Axis'}]
+      },
+      _onChangeUrlParams(urlParams) {
+        if (!_.isEmpty(urlParams) && urlParams.selectedChart === 'scatter') {
+          this.async(function () {
+            this.set('categories', urlParams.categories)
+          })
+        }
+      },
+      _addTag() {
+        if (this._isInvalid()) return
+        if (this.categories.length < 11) {
+          this.push('categories', {tag: '', label: 'Y Axis'});
+          this._updateCategories()
+        }
+      },
+      _isInvalid() {
+        this.fire('validate')
+        return _.some(this.categories, category => {
+          const tag = _.get(category, 'tag')
+          return _.isEmpty(tag)
+        })
+      },
+      _changeTag(e) {
+        const {dataset: {index}, value} = e.currentTarget
+        this.set(`categories.${index}.tag`, value)
+        this.fire('change-filters', {categories: this.categories})
+      },
+      _removeTag(e) {
+        const {dataset: {index}} = e.currentTarget
+        this.splice('categories', index, 1)
+        this._updateCategories()
+      },
+      _showRemove(index, len) {
+        return index > 0 && len > 2
+      },
+      _updateCategories() {
+        this.fire('change-filters', _.cloneDeep({categories: this.categories}))
+      },
+    })
+  </script>
+</dom-module>

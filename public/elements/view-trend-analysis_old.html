@@ -1,0 +1,2637 @@
+<link rel="import" href="../bower_components/polymer/polymer.html" />
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html" />
+<link rel="import" href="../bower_components/global-var/global-var.html" />
+<link
+  rel="import"
+  href="../bower_components/iron-resizable-behavior/iron-resizable-behavior.html"
+/>
+<dom-module id="view-trend-analysis">
+  <template>
+    <!-- scoped CSS for this element -->
+    <style>
+      .nav-link.active {
+        background: #dee2e6;
+      }
+
+      ::content .tagSearchContainer {
+        overflow-y: auto;
+        background: #dee2e6;
+      }
+
+      @media (max-width: 575.98px) {
+        ::content .tagSearchContainer {
+          width: 100% !important;
+        }
+      }
+
+      @media (max-width: 1199.98px) {
+        ::content .tagSearchContainer {
+          width: 340px !important;
+        }
+      }
+
+      .searchResult .list-group .list-group-item {
+        cursor: pointer !important;
+      }
+
+      .searchResult .list-group .list-group-item div {
+        word-wrap: break-word;
+      }
+
+      .h-32 #searchResults ::-webkit-scrollbar {
+        width: 5px;
+        background-color: #000;
+      }
+
+      .searchResult .description {
+        justify-content: space-between;
+      }
+
+      .fas {
+        cursor: pointer;
+      }
+
+      .recentTags .list-group .list-group-item {
+        font-size: 14px;
+      }
+
+      .col-form-label {
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .activeTagHeading {
+        font-size: 17px;
+      }
+
+      .activeTagDesc {
+        font-size: 13px;
+      }
+
+      ::content .highcharts-legend-item-hidden tspan {
+        fill: #ccc !important;
+      }
+
+      .fa-info-circle {
+        outline-color: transparent;
+        text-decoration: none;
+        color: #343a40;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      .searchFilter {
+        min-height: 25px;
+      }
+
+      .searchFilter label {
+        font-size: 15px;
+        line-height: 0.9rem;
+      }
+
+      #trendAlerts {
+        white-space: pre-line;
+      }
+
+      .modal-footer .custom-switch {
+        padding-left: 3.25rem;
+      }
+
+      .wider-tooltip {
+        width: 300px;
+      }
+
+      .wider-tooltip .tooltip-inner {
+        max-width: 300px;
+      }
+
+      .tooltip.show p {
+        text-align: left;
+      }
+    </style>
+
+    <div class="container-fluid h-100 container-with-sidebar">
+      <div class="d-flex h-100">
+        <nav class="bg-light sidebar position-fixed h-100 text-center border-right">
+          <ul class="nav flex-column">
+            <li class="nav-item">
+              <a
+                class="nav-link text-dark px-4 py-3 active"
+                href="#/trend-analysis/tag-search"
+                on-tap="_toggleSearch"
+                data-toggle="tooltip"
+                data-placement="right"
+                title="Trend Analysis"
+              >
+                <i class="fas fa-tag"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link text-dark px-4 py-3"
+                href="#/trend-analysis/chart"
+                data-toggle="tooltip"
+                data-placement="right"
+                title="Charts"
+              >
+                <i class="far fa-chart-bar"></i>
+              </a>
+            </li>
+          </ul>
+        </nav>
+
+        <div class="tagSearchContainer p-2 w-25 border-right">
+          <div
+            class="lead pb-2 d-flex justify-content-between border-bottom border-light mb-2"
+          >
+            <span><strong>Trend Analysis</strong></span>
+
+            <a
+              href="JavaScript:(0);"
+              title="Trend Analysis "
+              data-toggle="popover"
+              data-placement="bottom"
+              on-click="_gtagEventInfo"
+              data-trigger="focus"
+              data-html="true"
+              data-content="Use Trend Analysis to visualize multiple tags simultaneously on the same graph. Navigate the timeline and the y-axis to view tag behavior in real time and derive meaningful insights."
+              ><i class="fas fa-info-circle"></i
+            ></a>
+          </div>
+          <div style="position: relative" class="form-group mb-1 bg-white">
+            <input
+              type="text"
+              required
+              autocomplete="off"
+              class="form-control"
+              on-input="_openSearchFilter"
+              placeholder="Search tag"
+              id="trendSearchTag_trendAnalysis"
+              name="trendSearchTag_trendAnalysis"
+            />
+            <template is="dom-if" if="{{searchFilter}}" restamp>
+              <div class="py-1 px-2">
+                <div
+                  id="searchFilterSelector"
+                  class="btn-group btn-group-toggle searchFilter mt-1 btn-block"
+                  data-toggle="buttons"
+                >
+                  <label
+                    class="btn btn-outline-primary"
+                    on-tap="_searchFilterChange"
+                  >
+                    <input
+                      type="radio"
+                      name="options"
+                      id="trendAnalysisSearchFilterOption1"
+                      autocomplete="off"
+                    />
+                    Assets
+                  </label>
+                  <label
+                    class="btn btn-outline-primary active"
+                    on-tap="_searchFilterChange"
+                  >
+                    <input
+                      type="radio"
+                      name="options"
+                      id="trendAnalysisSearchFilterOption2"
+                      autocomplete="off"
+                    />
+                    Tags
+                  </label>
+                </div>
+              </div>
+            </template>
+            <template is="dom-if" if="{{tagSearchResult}}" restamp>
+              <div class="searchResult">
+                <small class="px-2 text-capitalize text-black-50">
+                  [[totalResults]] result(<small>s</small>) found</small
+                >
+                <ul class="list-group rounded overflow-hidden">
+                  <template
+                    is="dom-repeat"
+                    items="[[_getActiveListing(tagSearchResult)]]"
+                    as="tagResults"
+                  >
+                    <li
+                      on-click="_addToActiveTagList"
+                      data-tagSelected$="[[tagResults.tag_id]]"
+                      data-tagnameSelected$="[[tagResults.tag_name]]"
+                      data-tagDescription$="[[tagResults.description]]"
+                      data-assetSelected$="[[tagResults.asset_id]]"
+                      data-activeAssetName$="[[tagResults.asset_name]]"
+                      class="border-none list-group-item px-2 py-1 border-top rounded-0 list-group-item-action"
+                    >
+                      <div class="h6 mb-0">[[tagResults.tag_name]]</div>
+                      <div class="h6 mb-0">[[tagResults.asset_name]]</div>
+                      <div class="text-black-50 mb-0 text-wrap d-flex description">
+                        <span class="text-truncate w-50"
+                          >[[tagResults.description]]
+                        </span>
+                      </div>
+                    </li>
+                  </template>
+                </ul>
+              </div>
+            </template>
+          </div>
+          <div class="form-group">
+            <label
+              for="trendAnalysisSearchRange"
+              class="col-form-label font-weight-light py-1 text-muted"
+              >Trend Range</label
+            >
+            <input
+              id="trendAnalysisSearchRange"
+              type="text"
+              name="datetimes"
+              class="form-control"
+            />
+          </div>
+          <template is="dom-if" if="{{activetagDataList}}" restamp>
+            <div class="h-60 border-bottom">
+              <div class="">
+                <label class="col-form-label py-1 mx-2" for="activeTag"
+                  >Active Tags</label
+                >
+                <small id="resultNo" class="form-text text-muted mx-2 my-0"></small>
+                <ul class="list-group list-group-flush overflow-auto">
+                  <template
+                    is="dom-repeat"
+                    items="{{activetagDataList}}"
+                    as="activeTags"
+                  >
+                    <li
+                      style="overflow-wrap: break-word"
+                      class="list-group-item px-2 py-1 rounded border-top list-group-item-action"
+                    >
+                      <small class="lead activeTagHeading"
+                        >{{activeTags.tag_name}}</small
+                      >
+                      <span class="float-right"
+                        ><i
+                          data-description$="[[activeTags.description]]"
+                          data-activetagName$="[[activeTags.tag_name]]"
+                          data-activeTag$="[[activeTags.tag_id]]"
+                          on-click="_moveToRecentTags"
+                          class="fas fa-times-circle text-dark"
+                        ></i
+                      ></span>
+                      <div class="text-black-50 activeTagDesc">
+                        {{activeTags.description}}
+                      </div>
+                    </li>
+                  </template>
+                </ul>
+              </div>
+            </div>
+          </template>
+          <template is="dom-if" if="{{recenttagDataList}}">
+            <div class="h-32">
+              <div class="recentTags">
+                <label class="col-form-label py-1 mx-2" for="recentTag"
+                  >Recent Tags</label
+                >
+                <ul class="list-group list-group-flush">
+                  <template
+                    is="dom-repeat"
+                    items="[[recenttagDataList]]"
+                    as="recentTags"
+                  >
+                    <li
+                      class="list-group-item px-2 py-1 rounded border-top text-black-50 list-group-item-action"
+                    >
+                      {{recentTags.tag_name}}
+                      <i
+                        data-recentTag$="[[recentTags.tag_id]]"
+                        data-recentTagName$="[[recentTags.tag_name]]"
+                        data-recentTagDesc$="
+                                                {{recentTags.description}}"
+                        on-click="_moveToActiveTags"
+                        class="float-right mt-1 text-dark fas fa-plus-circle"
+                      ></i>
+                    </li>
+                  </template>
+                </ul>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <main role="main" class="p-3 bg-white pb-0 flex-grow-1">
+          <template is="dom-if" if="[[trendAlerts]]" restamp>
+            <div
+              style="z-index: 10"
+              class="alert alert-info mb-0 alert-dismissible fade show mb-2"
+              role="alert"
+            >
+              <button
+                type="button"
+                class="close"
+                data-dismiss="alert"
+                on-click="_dismissAlert"
+                aria-label="Close"
+              >
+                <span aria-hidden="true">&times;</span>
+              </button>
+              <span id="trendAlerts">[[trendAlerts]]</span>
+            </div>
+          </template>
+          <span
+            class="d-inline-block"
+            tabindex="0"
+            data-toggle="tooltip"
+            data-placement="left"
+            title="Save this view by clicking here."
+          >
+            <!-- <template
+              is="dom-if"
+              if="{{getAuthorizationDetail.trendAnalysisTrendAnalysisSaveWorkflowE0}}"
+            > -->
+              <button
+                type="button"
+                class="btn btn-primary btn-sm"
+                data-toggle="modal"
+                on-click="_gtagEvent"
+                data-target="#confirmWO"
+              >
+                <i class="fas fa-bookmark"></i> Work Organizer
+              </button>
+            <!-- </template> -->
+          </span>
+          <select class="form-control-sm" on-change="_chartTypeChange">
+            <option value="average">Average</option>
+            //average out dataset
+            <option value="open">First value</option>
+            //
+            <option value="high">High</option>
+            //highest out of dataset
+            <option value="low">Low</option>
+            //lowest out of dataset
+            <option value="close">Last Value</option>
+            //
+            <option value="sum">Sum</option>
+            //sum of dataset
+          </select>
+          <div class="container-fluid" style="position: relative">
+            <div class="row">
+              <div
+                id="trendAnalysisContainer"
+                style="width: 100%; height: 80vh"
+              ></div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+    <div
+      class="modal fade"
+      id="updateTrendAnalysisAxesModal"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="updateAxesModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="updateAxesModalLabel">Update Axis</h5>
+            <button
+              type="button"
+              class="close"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <template is="dom-if" if="[[!AxesData.0]]" restamp>
+              No Tags Found!
+            </template>
+            <form id="trendAnalysisAxesFormInputs" onsubmit="return false">
+              <template is="dom-if" if="[[AxesData]]" restamp>
+                <template
+                  id="tagAxes"
+                  is="dom-repeat"
+                  items="{{AxesData}}"
+                  as="tagAxes"
+                >
+                  <div class="form-row">
+                    <div class="col-7">
+                      <label for="colFormLabel" class="col-form-label"
+                        >Tag Name</label
+                      >
+                      <input
+                        readonly
+                        type="text"
+                        class="form-control"
+                        placeholder="Series Name"
+                        value$="[[tagAxes.tagName]]"
+                      />
+                    </div>
+                    <div class="col">
+                      <label for="colFormLabel" class="col-form-label">Min </label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="tagTA_[[tagAxes.tagName]]_min"
+                        placeholder="Min"
+                        value="{{tagAxes.Axes.0}}"
+                        data-org-value$="[[tagAxes.Axes.0]]"
+                      />
+                    </div>
+                    <div class="col">
+                      <label for="colFormLabel" class="col-form-label">Max </label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="tagTA_[[tagAxes.tagName]]_max"
+                        placeholder="Max"
+                        value="{{tagAxes.Axes.1}}"
+                        data-org-value$="[[tagAxes.Axes.1]]"
+                      />
+                    </div>
+                  </div>
+                </template>
+                <template is="dom-if" if="[[AxesData.0]]" restamp>
+                  <div class="text-muted">
+                    <small
+                      >Note: Axis of updated graph might vary slightly from entered
+                      values in few instances.</small
+                    >
+                  </div>
+                </template>
+              </template>
+            </form>
+            <template is="dom-if" if="[[axesAlerts]]" restamp>
+              <div
+                style="z-index: 10; margin-top: 1rem"
+                class="alert alert-info mb-0 alert-dismissible fade show mb-2"
+                role="alert"
+              >
+                <!-- <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button> -->
+                <span id="axesAlerts">[[axesAlerts]]</span>
+              </div>
+            </template>
+          </div>
+
+          <div class="d-flex justify-content-between m-3">
+            <div>
+              <template is="dom-if" if="[[AxesData.0]]" restamp>
+                <button
+                  type=" button"
+                  class="btn btn-secondary"
+                  on-click="_resetAxes"
+                >
+                  Reset
+                </button>
+              </template>
+            </div>
+            <div>
+              <button type="button" class="btn btn-light" data-dismiss="modal">
+                Close
+              </button>
+              <template is="dom-if" if="[[AxesData.0]]" restamp>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  on-click="_updateTagAxes"
+                >
+                  Update
+                </button>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="confirmWO"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="confirmWOTitle"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header" style="position: relative">
+            <h5 class="modal-title" id="confirmWOTitle">Save Work</h5>
+            <button
+              type="button"
+              class="close"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <form id="woFormInputs" onsubmit="return false">
+            <div class="modal-body">
+              <template is="dom-if" if="[[!updateFormInputs]]" restamp>
+                <div class="form-group">
+                  <label for="woName">Name</label>
+                  <input
+                    required
+                    type="text"
+                    class="form-control"
+                    id="woName"
+                    placeholder="Enter Name"
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="woDescription">Description</label>
+                  <textarea
+                    class="form-control"
+                    id="woDescription"
+                    rows="3"
+                  ></textarea>
+                </div>
+                <!-- <div class="form-group">
+                  <label>
+                    <input
+                      on-click="_toggleUserAccess"
+                      type="checkbox"
+                      id="userAccess_check"
+                      value=""
+                    />
+                    Share With
+                  </label>
+                  <template is="dom-if" if="[[usersAccessCheck]]" restamp>
+                    <br />
+                    <hr />
+                    <span> <strong>Viewable Layer of access</strong> </span>
+                    <div class="row">
+                      <div class="col-md-8">
+                        <select
+                          style="width: 100% !important; bottom: 0"
+                          id="firstLayerUsers"
+                          class="form-control"
+                          name="firstLayerUsers"
+                          multiple="multiple"
+                          on-change="_updateList"
+                          required
+                        >
+                          <template is="dom-repeat" items="{{_response_getUsers}}">
+                            <option value="{{item.userName}}">
+                              {{item.userName}}
+                            </option>
+                          </template>
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <select
+                          id="firstLayerUsersAccess"
+                          class="form-control"
+                          required
+                        >
+                          <option value="VIEW">VIEW</option>
+                        </select>
+                      </div>
+                    </div>
+                    <span> <strong>Editable Layer of access</strong> </span>
+                    <div class="row">
+                      <div class="col-md-8">
+                        <select
+                          style="width: 100% !important; bottom: 0"
+                          id="secondLayerUsers"
+                          class="form-control"
+                          name="secondLayerUsers"
+                          multiple="multiple"
+                          on-change="_updateList"
+                          required
+                        >
+                          <template is="dom-repeat" items="{{_response_getUsers}}">
+                            <option value="{{item.userName}}">
+                              {{item.userName}}
+                            </option>
+                          </template>
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <select
+                          id="secondLayerUsersAccess"
+                          class="form-control"
+                          required
+                        >
+                          <option value="EDIT">EDIT</option>
+                        </select>
+                      </div>
+                    </div>
+                  </template>
+                </div> -->
+              </template>
+              <template is="dom-if" if="{{_status_wo}}">
+                <div
+                  class="alert alert-primary border-0 m-0 p-2 mb-3 text-center"
+                  role="alert"
+                >
+                  {{_status_wo}}
+                </div>
+              </template>
+              <template is="dom-if" if="[[updateFormInputs]]" restamp>
+                <div class="form-group">
+                  <label for="woName">Name</label>
+                  <input
+                    readonly
+                    type="text"
+                    class="form-control"
+                    id="woName"
+                    value$="{{woNameValue}}"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="woDescription">Description</label>
+                  <textarea
+                    class="form-control"
+                    id="woDescription"
+                    rows="3"
+                    value="{{woDescValue::input}}"
+                  ></textarea>
+                </div>
+                <br />
+                <hr />
+                <!-- <span> <strong>Viewable Layer of access</strong> </span>
+                <div class="row">
+                  <div class="col-md-8">
+                    <select
+                      style="width: 100% !important; bottom: 0"
+                      id="firstLayerUsers"
+                      class="form-control"
+                      name="firstLayerUsers"
+                      multiple="multiple"
+                      on-change="_updateList"
+                      required
+                    >
+                      <template is="dom-repeat" items="{{_response_getUsers}}">
+                        <option
+                          selected$="{{_markChecked(item.userName,getUserResourcesDetails.0.View)}}"
+                          value="{{item.userName}}"
+                        >
+                          {{item.userName}}
+                        </option>
+                      </template>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <select id="firstLayerUsersAccess" class="form-control" required>
+                      <option value="VIEW">VIEW</option>
+                    </select>
+                  </div>
+                </div>
+                <span> <strong>Editable Layer of access</strong> </span>
+                <div class="row">
+                  <div class="col-md-8">
+                    <select
+                      style="width: 100% !important; bottom: 0"
+                      id="secondLayerUsers"
+                      class="form-control"
+                      name="secondLayerUsers"
+                      multiple="multiple"
+                      on-change="_updateList"
+                      required
+                    >
+                      <template is="dom-repeat" items="{{_response_getUsers}}">
+                        <option
+                          selected$="{{_markChecked(item.userName,getUserResourcesDetails.1.Edit)}}"
+                          value="{{item.userName}}"
+                        >
+                          {{item.userName}}
+                        </option>
+                      </template>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <select
+                      id="secondLayerUsersAccess"
+                      class="form-control"
+                      required
+                    >
+                      <option value="EDIT">EDIT</option>
+                    </select>
+                  </div>
+                </div> -->
+              </template>
+            </div>
+            <div class="modal-footer">
+              <template is="dom-if" if="[[updateFormInputs]]">
+                <div class="custom-control custom-switch ml-3 mb-2 col-sm-6">
+                  <input
+                    type="checkbox"
+                    class="custom-control-input"
+                    on-click="_saveNewWorkOrganizer"
+                    id="NewWorkOrganizer"
+                  />
+                  <label class="custom-control-label" for="NewWorkOrganizer"
+                    >Save As</label
+                  >
+                </div>
+              </template>
+              <div class="col-sm-6 pr-0 d-flex justify-content-end">
+                <button
+                  type="button"
+                  on-click="_dismissWorkOrganizer"
+                  class="btn btn-secondary mr-1"
+                  data-dismiss="modal"
+                >
+                  Cancel
+                </button>
+                <template is="dom-if" if="[[!updateFormInputs]]">
+                  <button
+                    id="saveWO"
+                    on-click="_saveToWorkOrganizer"
+                    type="button"
+                    class="btn btn-primary"
+                  >
+                    Save
+                  </button>
+                </template>
+                <template is="dom-if" if="[[updateFormInputs]]">
+                  <!-- <template is="dom-if" if="[[_checkWOAccess(woNameValue)]]"> -->
+                    <button
+                      id="saveWO"
+                      on-click="_updateWorkOrganizer"
+                      type="button"
+                      class="btn btn-primary"
+                    >
+                      Update
+                    </button>
+                  <!-- </template> -->
+                </template>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <global-loader>
+      <iron-ajax
+      auto
+        id="e_searchTag"
+        url="/getAssetsAndTagsDetail"
+        last-response="{{AssetsAndTagsDetail}}"
+        on-response="_onResponse_searchTag"
+        on-error="_onError"
+      ></iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        auto
+        id="e_recentTag"
+        url="/getRecentTagList"
+        on-response="_onResponse_recenttagDataList"
+        on-error="_onError"
+      ></iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        method="POST"
+        id="e_insertRecentTag"
+        url="/insertTag"
+        headers='{"Content-Type": "application/json"}'
+        on-response="_onResponse_insertRecentTag"
+        on-error="_onError"
+      >
+      </iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        id="e_getTagTrends"
+        last-response="{{tagTrends}}"
+        on-response="_onResponse_getTagTrends"
+        on-error="_onError"
+      >
+      </iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        id="getAssetTags"
+        url="/getAssetTags/[[selectedAssetTags]]"
+        on-response="_onResponse_getAssetTags"
+        on-error="_onError"
+      ></iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        method="POST"
+        id="addWorkOrganizer"
+        url="/addWorkFlow"
+        handle-as="json"
+        content-type="application/json"
+        on-response="_onResponse_addWorkOrganizer"
+        on-error="_onError"
+      >
+      </iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        method="POST"
+        id="updateWorkOrganizer"
+        url="/updateWorkFlow"
+        handle-as="json"
+        content-type="application/json"
+        on-response="_onResponse_updateWorkOrganizer"
+        on-error="_onError"
+      >
+      </iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        id="getWorkFlow"
+        url="/getWorkFlow"
+        last-response="{{getWorkFlowList}}"
+        on-response="_onResponse_getWorkFlow"
+        on-error="_onError"
+      >
+      </iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        id="getUsers"
+        url="/getUserGroups"
+        method="GET"
+        on-response="_onResponse_getUsers"
+        headers='{"Content-Type": "application/json"}'
+      >
+      </iron-ajax>
+    </global-loader>
+
+    <global-loader>
+      <iron-ajax
+        method="POST"
+        id="addUserResourcesWorkflow"
+        url="/addUserResourcesWorkflow"
+        handle-as="json"
+        content-type="application/json"
+        on-response="_onResponse_addUserResourcesWorkflow"
+        on-error="_onError"
+      >
+      </iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        method="POST"
+        id="updateUserResourcesWorkflow"
+        url="/updateUserResourcesWorkflow"
+        handle-as="json"
+        content-type="application/json"
+        on-response="_onResponse_updateUserResourcesWorkflow"
+        on-error="_onError"
+      >
+      </iron-ajax>
+    </global-loader>
+    <global-loader>
+      <iron-ajax
+        method="POST"
+        id="getUserResourcesWorkflow"
+        url="/getUserResourcesWorkflow"
+        last-response="{{getUserResourcesDetails}}"
+        handle-as="json"
+        content-type="application/json"
+        on-response="_onResponse_getUserResourcesWorkflow"
+        on-error="_onError"
+      >
+      </iron-ajax>
+    </global-loader>
+
+    <global-var name="tagAlert" value="{{tagAlert}}"></global-var>
+    <global-var name="woModuleInputs" value="{{woModuleInputs}}" read-only></global-var>
+    <global-var name="getAuthorizationDetail" value="{{getAuthorizationDetail}}" read-only></global-var>
+    
+  </template>
+  <script>
+    Polymer({
+
+      is: 'view-trend-analysis',
+
+      properties: {
+        totalResults: {
+          value: 0,
+        },
+        updateFormInputs: {
+          type: Boolean,
+          value: false,
+        },
+        searchFilter: {
+          type: Boolean,
+          value: false,
+        },
+        tagList: {
+          type: Array,
+          value: [],
+        },
+        tagInsertedList: {
+          type: Array,
+          value: [],
+        },
+        woNameValue: {
+          type: String,
+        },
+        activetagDataList: {
+          type: String,
+          value: [],
+        },
+        previousWorkFlowName: {
+          type: String,
+        },
+        previousWorkFlowDesc: {
+          type: String,
+        },
+        AxesData: {
+          type: Array,
+          value: [],
+        },
+        axesAlerts: {
+          type: Boolean,
+          value: false,
+        },
+        recenttagDataList: {
+          type: Array,
+          value: [],
+        },
+        yAxisIndex: {
+          type: Number,
+          value: 0,
+        },
+        resetAxesState: {
+          type: Boolean,
+          value: false,
+        },
+        usersAccessCheck: {
+          type: Boolean,
+          value: false,
+        },
+        addConditionalFilter: {
+          type: Boolean,
+          value: false,
+        },
+        addConditionalFilterEdit: {
+          type: Boolean,
+          value: false,
+        },
+        updateFormInputs: {
+          type: Boolean,
+          value: false,
+        },
+      },
+
+      observers: [
+        '_tagAlertTrends(tagAlert)',
+        '_onModulInputChange(woModuleInputs)',
+        '_onActiveListChange(activetagDataList)',
+      ],
+
+      created: function () {
+        $('html').removeClass('in-progress');
+      },
+
+      active: function () {
+        var root = this;
+
+        root.tagSearchResult = false;
+        root.AssetsAndTagsDetail = {};
+        root.$.e_searchTag.generateRequest();
+        // root.$.getUsers.generateRequest();
+        // root.$.getWorkFlow.generateRequest();
+      },
+
+      deactive: function () {},
+
+      attached: function () {
+        var root = this;
+
+        root.$.e_recentTag.generateRequest();
+
+        root.activetagDataList = [];
+        root.tagList = [];
+
+        this.async(function () {
+          $('[data-toggle="tooltip"]').tooltip();
+          $('[data-toggle="popover"]').popover();
+          root._loadDateRange(false);
+          root._initializeChart();
+        });
+        root.timeCoverterCheck = false;
+        root.tagSearchResult = false;
+        root.searchFilter = false;
+        root.seriesName;
+        root.searchedTagValue;
+        root.assetList = [];
+        root.assetTagList = [];
+        root.endDateRange = new Date();
+        root.startDateRange = Date.parse(root.endDateRange) - 604800000;
+        var date1 = new Date();
+        date1 = date1.getHours();
+        var date2 = new Date(window.current_server_time);
+        date2 = date2.getHours();
+        var timeZoneFromDB = date1 - date2;
+        var date = new Date();
+        var targetTime = new Date(date);
+      },
+
+      detached: function () {
+        root.tagInsertedList = [];
+        root.tagList = [];
+        if (jifalopsGlobalVar.woModuleInputs.value) {
+          jifalopsGlobalVar.woModuleInputs.value = undefined;
+        }
+        root.activetagDataList = [];
+      },
+
+      ready: function () {
+        var root = this;
+      },
+
+      _addCondition: function () {
+        var _root = this;
+        _root.addConditionalFilter = true;
+        _root.async(function () {
+          $(_root.querySelector('#secondLayerUsers')).select2();
+
+          $(_root.querySelector('#secondLayerUsers')).trigger('change');
+        });
+      },
+    
+      _addConditionEdit: function () {
+        var _root = this;
+        _root.addConditionalFilterEdit = true;
+        _root.async(function () {
+          $(_root.querySelector('#_users_edit1')).select2();
+
+          $(_root.querySelector('#_users_edit1')).trigger('change');
+        });
+      },
+    
+      _removeCondition: function () {
+        var root = this;
+        root.addConditionalFilter = false;
+      },
+    
+      _removeConditionEdit: function () {
+        var root = this;
+        root.addConditionalFilterEdit = false;
+      },
+    
+      _markChecked: function (str, arr) {
+        for (var i = 0; i < arr.length; i++) {
+          var str1 = String(str).toLowerCase();
+          var arr1 = String(arr[i]).toLowerCase();
+          if (str1 === arr1) {
+            return str1 === arr1;
+          }
+        }
+      },
+    
+      _toggleUserAccess: function () {
+        var _root = this;
+        if (_root.querySelector('#userAccess_check').checked) {
+          _root.usersAccessCheck = true;
+          _root.async(function () {
+            var array1 = [];
+            var array2 = [];
+            $(_root.querySelector('#firstLayerUsers')).select2();
+            _root.async(function () {
+              $(_root.querySelector('#secondLayerUsers')).select2();
+
+              $(_root.querySelector('#secondLayerUsers')).trigger('change');
+            });
+            // $(_root.querySelector('#firstLayerUsers')).on("select2:select", function (e) {
+            //     var _users_addGroup = $(_root.querySelector('#firstLayerUsers')).select2('data');
+            //     for (var i = 0; i < _users_addGroup.length; i++) {
+            //         array1.push(
+            //             String(_users_addGroup[i].id)
+            //         )
+            //     }
+            //     array2 = (_root._newResponse_getUsers.filter(f => !array1.includes(f)))
+            //     console.log(array2)
+            //     // _root._newResponse_getUsers = array2
+            // })
+          });
+        } else {
+          _root.usersAccessCheck = false;
+        }
+      },
+    
+      _passwordEditCheck: function () {
+        var _root = this;
+        if (_root.querySelector('#_passwordEditCheck_addUser').checked) {
+          _root.usersAccessCheck = true;
+          _root.async(function () {
+            $(_root.querySelector('#_users_addEdit')).select2();
+
+            $(_root.querySelector('#_users_addEdit')).trigger('change');
+          });
+        } else {
+          _root.usersAccessCheck = false;
+        }
+      },
+    
+      _onResponse_getUsers: function (e) {
+        var _root = this;
+        var users = e.detail.response;
+        for (var i = 0; i < users.length; i++) {
+          if (String(users[i].userName) === String(window.user_id)) {
+            users.splice(i, 1);
+          }
+        }
+        _root._response_getUsers = users;
+        _root._newResponse_getUsers = [];
+        for (var i = 0; i < _root._response_getUsers.length; i++) {
+          _root._newResponse_getUsers.push(_root._response_getUsers[i].userName);
+        }
+      },
+    
+      _initializeChart: function () {
+        var root = this;
+        this.chart = Highcharts.stockChart('trendAnalysisContainer', {
+          chart: {
+            backgroundColor: '#fff',
+            zoomType: 'xy',
+                     },
+          boost: {
+            useGPUTranslations: true,
+          },
+          rangeSelector: {
+            selected: 8,
+            inputEnabled: true,
+            buttons: [
+              {
+                type: 'hour',
+                count: 0,
+                text: '1h',
+              },
+              {
+                type: 'day',
+                count: 0,
+                text: '1d',
+              },
+              {
+                type: 'week',
+                count: 0,
+                text: '1w',
+              },
+              {
+                type: 'month',
+                count: 1,
+                text: '1m',
+              },
+              {
+                type: 'month',
+                count: 3,
+                text: '3m',
+              },
+              {
+                type: 'month',
+                count: 6,
+                text: '6m',
+              },
+              {
+                type: 'ytd',
+                text: 'YTD',
+              },
+              {
+                type: 'year',
+                count: 1,
+                text: '1y',
+              },
+              {
+                type: 'all',
+                text: 'All',
+              },
+            ],
+          },
+          navigator: {
+            buttonOptions: {
+              enabled: true,
+            },
+            enabled: true,
+            height: 60,
+          },
+          legend: {
+            enabled: true,
+            allButtonsEnabled: true,
+            borderColor: '#ced4da',
+            borderRadius: '5px',
+            borderWidth: 1,
+            labelFormatter: function () {
+              return (
+                '<span style="fill: ' + this.color + '">' + this.name + '</span>'
+              );
+            },
+            symbolPadding: 0,
+            symbolWidth: 0,
+            symbolRadius: 0,
+            // reversed: true
+          },
+          tooltip: {
+            // xDateFormat: '%Y-%m-%d %H:%M:%S',
+            split: false,
+            distance: 30,
+            padding: 5,
+            shared: true,
+            valueDecimals: 2,
+            formatter: function () {
+              var tooltipData = [],
+                title = Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', this.x);
+              tooltipData.push(title + '<br/>');
+              $.each(this.points, function (i, point) {
+                tooltipData.push(
+                  '<span>' +
+                    point.series.name +
+                    ' : <strong>' +
+                    root._thousandPartSeprator(point.y) +
+                    '</strong> ' +
+                    root._unitConvertor(point.series.userOptions.unit) +
+                    '  <span><br/>'
+                );
+              });
+
+              return tooltipData;
+            },
+            shared: true,
+          },
+          plotOptions: {
+            series: {
+              visible: true,
+              dashStyle: 'line',
+              dataGrouping: {
+                approximation: 'average',
+              },
+              boostThreshold: 0,
+            },
+          },
+          xAxis: {
+            type: 'datetime',
+          },
+          exporting: {
+            fallbackToExportServer: true,
+            filename: 'Trend Analysis - ' + moment().format('YYYY-MM-DD HH:mm:ss'),
+            buttons: {
+              axesButton: {
+                text: 'Set Axis',
+                onclick: function () {
+                  root._openChartConfig();
+                },
+                theme: {
+                  style: {
+                    color: 'Gey',
+                    fontWeight: 700,
+                  },
+                },
+                x: -310,
+                y: -2,
+              },
+            },
+          },
+        });
+      },
+    
+      _thousandPartSeprator: function (x) {
+        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      },
+    
+      _openChartConfig: function (e) {
+        var root = this;
+        var chart = this.chart;
+        root.axesAlerts = false;
+        var tagAxes = [];
+        root.AxesData = [];
+        for (var i = 0; i < chart.series.length; i++) {
+          if (!chart.series[i].name.includes('Navigator')) {
+            if (chart.series[i].visible) {
+              var ex = chart.series[i];
+              var axes = [];
+              tagAxes.push({
+                tagName: chart.series[i].name,
+                Axes: [chart.series[i].yAxis.min, chart.series[i].yAxis.max],
+                tagColor: chart.series[i].color,
+              });
+            }
+          }
+        }
+
+        if (tagAxes.length > 0) {
+          root.AxesData = false;
+          root.AxesData = tagAxes;
+        }
+        $('#updateTrendAnalysisAxesModal').modal('show');
+      },
+    
+      _updateTagAxes: function () {
+        var root = this;
+        root.axesAlerts = false;
+        var chart = this.chart;
+        var element = document.querySelector('#trendAnalysisAxesFormInputs')
+          .elements;
+        for (var i = 0; i < element.length; i++) {
+          if (element[i].type === 'text') {
+            var tagName = element[i].value;
+            var min = '#tagTA_' + tagName + '_min';
+            var max = '#tagTA_' + tagName + '_max';
+            minValue = document.querySelector(min).value;
+            maxValue = document.querySelector(max).value;
+            // if (root.resetAxesState) {
+            //     chart.get(element[i].value).yAxis.setExtremes(undefined, undefined);
+            //     $('#updateTrendAnalysisAxesModal').modal('hide');
+
+            // }
+            // else {
+            var index;
+            for (var x = 0; x < chart.yAxis.length; x++) {
+              if (chart.yAxis[x].userOptions.hasOwnProperty('id'))
+                if (chart.yAxis[x].userOptions.name === tagName.toUpperCase()) {
+                  index = x;
+                }
+            }
+
+            if (Number(minValue) < Number(maxValue)) {
+              chart.yAxis[index].update({
+                floor: Number(minValue),
+                ceiling: Number(maxValue),
+                softMin: Number(minValue),
+                softMax: Number(maxValue),
+              });
+              // chart.get(tagName).yAxis.setExtremes(minValue, maxValue);
+              $('#updateTrendAnalysisAxesModal').modal('hide');
+            } else {
+              root.axesAlerts = true;
+              root.axesAlerts = 'Axis out of Range';
+              return false;
+            }
+            // }
+          }
+        }
+        root.resetAxesState = false;
+      },
+    
+      _resetAxes: function () {
+        var root = this;
+        var tagAxes = [];
+        root.AxesData = false;
+        var chart = this.chart;
+        for (var i = 0; i < chart.series.length; i++) {
+          if (!chart.series[i].name.includes('Navigator')) {
+            if (chart.series[i].visible) {
+              tagAxes.push({
+                tagName: chart.series[i].name,
+                Axes: [chart.series[i].yAxis.dataMin, chart.series[i].yAxis.dataMax],
+                tagColor: chart.series[i].color,
+              });
+              root.resetAxesState = true;
+            }
+          }
+        }
+        if (tagAxes.length > 0) {
+          root.AxesData = false;
+          root.AxesData = tagAxes;
+        }
+      },
+    
+      _loadDateRange: function (flag) {
+        var root = this;
+        var temp_date_start;
+        if (flag == true) {
+          if (root.woModuleInputs) {
+            temp_date_start = root.woModuleInputs.settings.start_date;
+            temp_date_end = root.woModuleInputs.settings.end_date;
+          }
+        } else {
+          temp_date_start = moment
+            .utc()
+            .utcOffset(Number(window.current_server_time))
+            .subtract(1, 'week');
+          temp_date_end = moment
+            .utc()
+            .utcOffset(Number(window.current_server_time))
+            .startOf('minutes');
+        }
+
+        $(function () {
+          $('#trendAnalysisSearchRange').daterangepicker(
+            {
+              timePicker: true,
+              showDropdowns: true,
+              timePicker24Hour: true,
+              timePickerSeconds: false,
+              alwaysShowCalendars: true,
+              linkedCalendars: false,
+              maxDate: moment
+                .utc()
+                .utcOffset(Number(window.current_server_time))
+                .startOf('minutes'),
+              opens: 'right',
+              ranges: {
+                Today: [
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .format('YYYY-MM-DD 00:00:00'),
+                  moment.utc().utcOffset(Number(window.current_server_time)),
+                ],
+                'Last 24 Hours': [
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .subtract(1, 'days'),
+                  moment.utc().utcOffset(Number(window.current_server_time)),
+                ],
+                'Last 7 Days': [
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .subtract(6, 'days'),
+                  moment.utc().utcOffset(Number(window.current_server_time)),
+                ],
+                'Last 30 Days': [
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .subtract(29, 'days'),
+                  moment.utc().utcOffset(Number(window.current_server_time)),
+                ],
+                'This Month': [
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .startOf('month'),
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .endOf('month'),
+                ],
+                'Last Month': [
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .subtract(1, 'month')
+                    .startOf('month'),
+                  moment
+                    .utc()
+                    .utcOffset(Number(window.current_server_time))
+                    .subtract(1, 'month')
+                    .endOf('month'),
+                ],
+              },
+              startDate: temp_date_start,
+              endDate: temp_date_end,
+
+              locale: {
+                format: 'YYYY-MM-DD HH:mm',
+                applyLabel: 'Confirm Dates',
+              },
+            },
+            function (start, end, label) {
+             
+
+              if (root.tagInsertedList) {
+                root.timeCoverterCheck = true;
+                root.startDateRange = start.format('YYYY-MM-DD HH:mm:ss');
+                root.endDateRange = end.format('YYYY-MM-DD HH:mm:ss');
+
+                var chart = this.chart;
+                if (chart) chart.destroy();
+                root._initializeChart();
+                root.async(function () {
+                  if (root.tagInsertedList.length > 0)
+                    for (var i = 0; i < root.tagInsertedList.length; i++) {
+                      if (root.tagInsertedList[i] !== undefined) {
+                        root.$.e_getTagTrends.url =
+                          '/getTagTrends/' +
+                          root.tagInsertedList[i] +
+                          '/' +
+                          start.format('YYYY-MM-DD HH:mm:ss') +
+                          '/' +
+                          end.format('YYYY-MM-DD HH:mm:ss');
+                        root.$.e_getTagTrends.generateRequest();
+                        flag = false;
+                      }
+                    }
+                });
+              }
+              if (flag) {
+                if (root.woModuleInputs) {
+                  $('#trendAnalysisSearchRange')
+                    .data('daterangepicker')
+                    .setStartDate(root.woModuleInputs.settings.start_date);
+                  $('#trendAnalysisSearchRange')
+                    .data('daterangepicker')
+                    .setEndDate(root.woModuleInputs.settings.end_date);
+                }
+              }
+            }
+          );
+        });
+      },
+    
+      _tagAlertTrends: function (tagAlert) {
+        for (var i = 0; i < tagAlert.length; i++) {
+          this._getTrends(tagAlert[i].tag_id);
+          this.activetagDataList = tagAlert;
+        }
+      },
+    
+      _showTimestamp: function (date) {
+        const monthNames = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sept',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
+        if (date) {
+          var dateTime = new Date(date);
+          var Month = monthNames[dateTime.getMonth()];
+          var Year = dateTime.getFullYear().toString().substr(-2);
+          return Month + '-' + Year;
+        } else {
+          return '-';
+        }
+      },
+    
+      _getActiveListing: function (data) {
+        array = data;
+        var flags = [],
+          output = [],
+          l = array.length,
+          i;
+        for (i = 0; i < l; i++) {
+          flags[array[i].tag_id] = true;
+          output.push({
+            tag_id: array[i].tag_id,
+            description: array[i].description ? array[i].description : '',
+            tag_name: array[i].tag_name,
+            asset_name: array[i].asset_name,
+            asset_id: array[i].asset_id,
+            max_date: array[i].max_date,
+            min_date: array[i].min_date,
+          });
+        }
+        return output;
+      },
+    
+      _searchFilterChange: function (e) {
+        var root = this;
+        root.tagSearchResult = false;
+        root.totalResults = 0;
+        var inputTag = root.$.trendSearchTag_trendAnalysis.value.toLowerCase();
+        var tags = root.AssetsAndTagsDetail.tags;
+        var assets = root.AssetsAndTagsDetail.assets;
+        var filteredTag, filteredAssets;
+        if (inputTag) {
+          if (document.getElementById('trendAnalysisSearchFilterOption1').checked) {
+            var tagList = tags;
+            filteredAssets = tagList.filter(function (arr, key) {
+              if (arr.tag_id != null || arr.description != null)
+                return (
+                  arr.tag_id.toLowerCase().indexOf(inputTag) != -1 ||
+                  (arr.description
+                    ? arr.description.toLowerCase().indexOf(inputTag) != -1
+                    : '')
+                );
+            });
+            root.tagSearchResult = filteredAssets;
+            root.totalResults = filteredAssets.length;
+          } else {
+            var tagList = assets;
+            filteredTag = tagList.filter(function (arr, key) {
+              return (
+                arr.asset_name.toLowerCase().indexOf(inputTag) != -1 ||
+                (arr.description
+                  ? arr.description.toLowerCase().indexOf(inputTag) != -1
+                  : '')
+              );
+            });
+            root.tagSearchResult = filteredTag;
+            root.totalResults = filteredTag.length;
+          }
+        } else {
+          root.tagSearchResult = false;
+        }
+      },
+    
+      _timeConverter: function (UNIX_timestamp) {
+        var a = new Date(UNIX_timestamp);
+        var year = a.getFullYear();
+        var month = a.getMonth() + 1;
+        var date = a.getDate();
+        var hour = a.getHours();
+        var min = a.getMinutes();
+        var sec = a.getSeconds();
+        var time =
+          year + '-' + month + '-' + date + ' ' + hour + ':' + min + ':' + sec;
+        return moment(time, 'YYYY-MM-DD HH:mm:ss').format('YYYY-MM-DD HH:mm:ss');
+      },
+    
+      _getTrends: function (tag, wfCheck) {
+        var root = this;
+        var start = root.startDateRange;
+        var end = root.endDateRange;
+        if (wfCheck) {
+          root.$.e_getTagTrends.url =
+            '/getTagTrends/' + tag + '/' + start + '/' + end;
+        } else {
+          root.$.e_getTagTrends.url =
+            '/getTagTrends/' +
+            tag +
+            '/' +
+            this._timeConverter(start) +
+            '/' +
+            this._timeConverter(end);
+        }
+        root.$.e_getTagTrends.generateRequest();
+      },
+    
+      _onResponse_getAssetTags: function (e) {
+        var root = this;
+        var tagList = e.detail.response;
+        root.assetTagList.push(tagList);
+        for (var i = 0; i < tagList.length; i++) {
+          root.searchedTagValue = tagList[i].tag_id;
+          var chart = this.chart;
+          root.tagSearchResult = false;
+          //tag insertion to recent tag list
+          var tagData = new FormData();
+          tagData = {
+            tags: tagList[i].tag_id,
+            // userid: window.user_id,
+          };
+          root.$.e_insertRecentTag.body = tagData;
+          root.$.e_insertRecentTag.generateRequest();
+          if (root.tagInsertedList.indexOf(tagList[i].tag_id) == -1) {
+            root.seriesName = tagList[i].tag_name;
+            root.tagInsertedList.push(tagList[i].tag_id);
+            root._filterList(root.recenttagDataList, tagList[i].tag_id);
+
+            root.tagList.push({
+              tag_id: tagList[i].tag_id,
+              tag_name: tagList[i].tag_name,
+              description: tagList[i].description,
+            });
+            var activetagDataList = JSON.stringify(root.tagList);
+            root.activetagDataList = JSON.parse(activetagDataList);
+
+            //get tag trends
+            root._getTrends(tagList[i].tag_id);
+          }
+        }
+      },
+    
+      _filterList: function (dataList, tagID) {
+        var root = this;
+        for (var i = 0; i < dataList.length; i++) {
+          if (dataList[i].tag_id === tagID) {
+            dataList.splice(i, 1);
+            var list = JSON.stringify(root.recenttagDataList);
+            root.recenttagDataList = JSON.parse(list);
+          }
+        }
+      },
+    
+      _filterActiveList: function (dataList, n = 0) {
+        if (n == 0) n = 'elem';
+        else n = 'elem.' + n;
+        var uval = [];
+        var unic = dataList.filter(function (elem, index, self) {
+          if (uval.indexOf(eval(n)) < 0) {
+            uval.push(eval(n));
+            return index == self.indexOf(elem);
+          }
+        });
+        return unic;
+      },
+    
+      _openSearchFilter: function (e) {
+        var root = this;
+        if (e.currentTarget.value) {
+          root.searchFilter = true;
+          root.async(function () {
+            document.getElementById(
+              'trendAnalysisSearchFilterOption1'
+            ).checked = false;
+            document.getElementById(
+              'trendAnalysisSearchFilterOption2'
+            ).checked = true;
+          }, 300);
+        } else {
+          root.searchFilter = false;
+        }
+      },
+    
+      _addToActiveTagList: function (e) {
+        var root = this;
+        root.$.trendSearchTag_trendAnalysis.value = '';
+        // root.searchFilter=false;
+        if (document.getElementById('trendAnalysisSearchFilterOption2').checked) {
+          root.searchedTagValue = e.currentTarget.dataset.tagselected;
+          var chart = this.chart;
+          root.tagSearchResult = false;
+          //tag insertion to recent tag list
+          var tagData = new FormData();
+          tagData = {
+            tags: e.currentTarget.dataset.tagselected,
+            // userid: window.user_id,
+          };
+          root.$.e_insertRecentTag.body = tagData;
+          root.$.e_insertRecentTag.generateRequest();
+          if (
+            root.tagInsertedList.indexOf(e.currentTarget.dataset.tagselected) == -1
+          ) {
+            root.seriesName = e.currentTarget.dataset.tagnameselected;
+            root.tagInsertedList.push(e.currentTarget.dataset.tagselected);
+            root._filterList(
+              root.recenttagDataList,
+              e.currentTarget.dataset.tagselected
+            );
+
+            root.tagList.push({
+              tag_id: e.currentTarget.dataset.tagselected,
+              tag_name: e.currentTarget.dataset.tagnameselected,
+              description: e.currentTarget.dataset.tagdescription,
+            });
+            var activetagDataList = JSON.stringify(root.tagList);
+            root.activetagDataList = JSON.parse(activetagDataList);
+
+            //get tag trends
+            root._getTrends(e.currentTarget.dataset.tagselected);
+          }
+          root.searchFilter = false;
+        } else if (
+          document.getElementById('trendAnalysisSearchFilterOption1').checked
+        ) {
+          root.tagSearchResult = false;
+          root.selectedAssetTags = e.currentTarget.dataset.assetselected;
+          root.$.getAssetTags.generateRequest();
+          root.searchFilter = false;
+        }
+      },
+    
+      _removeAsset: function (e) {
+        var root = this;
+
+        for (var i = 0; i < root.activeAssetDataList.length; i++) {
+          if (
+            root.activeAssetDataList[i].asset_name ==
+            e.currentTarget.dataset.activeassetname
+          ) {
+            root.tagList.splice(i, 1);
+            var activeAssetDataList = JSON.stringify(root.tagList);
+            root.activeAssetDataList = JSON.parse(activeAssetDataList);
+          }
+        }
+
+        root.activetagDataList = false;
+      },
+    
+      _moveToActiveTags: function (e) {
+        var root = this;
+        root.AxesData = false;
+        if (root.tagInsertedList.indexOf(e.currentTarget.dataset.recenttag) == -1) {
+          root.seriesName = e.currentTarget.dataset.recenttagname;
+          root.tagInsertedList.push(e.currentTarget.dataset.recenttag);
+          root._filterList(
+            root.recenttagDataList,
+            e.currentTarget.dataset.recenttag
+          );
+          root.tagList.push({
+            tag_id: e.currentTarget.dataset.recenttag,
+            tag_name: e.currentTarget.dataset.recenttagname,
+            description: e.currentTarget.dataset.recenttagdesc,
+          });
+          var activetagDataList = JSON.stringify(root.tagList);
+          root.activetagDataList = JSON.parse(activetagDataList);
+          // root.trendTagList = e.currentTarget.dataset.recenttagname;
+
+          //remove tag from recent
+          var tagData = new FormData();
+          selectedTag = e.currentTarget.dataset.recenttag;
+          tagData = {
+            tags: selectedTag,
+            // userid: window.user_id,
+          };
+          // root.$.e_delRecentTag.body = (tagData);
+          // root.$.e_delRecentTag.generateRequest();
+          root._getTrends(e.currentTarget.dataset.recenttag);
+        }
+      },
+    
+      _moveToRecentTags: function (e) {
+        var root = this;
+        root.AxesData = false;
+        // root.tagInsertedList.push(e.currentTarget.dataset.activetag);
+        root._filterList(root.recenttagDataList, e.currentTarget.dataset.activetag);
+        //insert into recent tag list
+        var tagData = new FormData();
+        tagData = {
+          tags: e.currentTarget.dataset.activetag,
+          // userid: window.user_id,
+        };
+        root.$.e_insertRecentTag.body = tagData;
+        root.$.e_insertRecentTag.generateRequest();
+        if (root.recenttagDataList.status) {
+          root.recenttagDataList = [];
+        }
+        root.recenttagDataList.push({
+          tag_id: e.currentTarget.dataset.activetag,
+          tag_name: e.currentTarget.dataset.activetagname,
+          description: e.currentTarget.dataset.description,
+        });
+        var updateRecentList = JSON.stringify(root.recenttagDataList);
+        root.recenttagDataList = JSON.parse(updateRecentList);
+
+        for (var i = 0; i < root.tagList.length; i++) {
+          if (root.tagList[i].tag_id == e.currentTarget.dataset.activetag) {
+            root.tagList.splice(i, 1);
+            var activetagDataList = JSON.stringify(root.tagList);
+            root.activetagDataList = JSON.parse(activetagDataList);
+          }
+        }
+        for (var i = 0; i < root.tagInsertedList.length; i++) {
+          if (root.tagInsertedList[i] === e.currentTarget.dataset.activetag) {
+            root.tagInsertedList.splice(i, 1);
+          }
+        }
+        var chart = this.chart;
+
+        for (var x = 0; x < chart.series.length; x++) {
+          if (chart.series[x])
+            if (chart.series[x].name === e.currentTarget.dataset.activetagname) {
+              var name = e.currentTarget.dataset.activetagname.toUpperCase() + '_ta';
+              if (chart) {
+                // console.log(chart.get(name), chart.series[x]);
+                chart.series[x].remove(false);
+                chart.get(name).remove(false);
+                //
+                chart.redraw();
+              }
+            }
+        }
+      },
+    
+      _onResponse_searchTag: function (e) {
+        var root = this;
+        var tags = e.detail.response.tags;
+        var assets = e.detail.response.assets;
+        var filteredTag, filteredAssets;
+        root.$.trendSearchTag_trendAnalysis.addEventListener('input', function (e) {
+          root.totalResults = 0;
+          var inputTag = root.$.trendSearchTag_trendAnalysis.value.toLowerCase();
+          if (inputTag) {
+            if (
+              document.getElementById('trendAnalysisSearchFilterOption1').checked
+            ) {
+              var tagList = assets;
+              filteredTag = tagList.filter(function (arr, key) {
+                return (
+                  arr.asset_name.toLowerCase().indexOf(inputTag) != -1 ||
+                  (arr.description
+                    ? arr.description.toLowerCase().indexOf(inputTag) != -1
+                    : '')
+                );
+              });
+              root.tagSearchResult = filteredTag;
+              root.totalResults = filteredTag.length;
+            } else {
+              var tagList = tags;
+              filteredAssets = tagList.filter(function (arr, key) {
+                if (arr.tag_id != null || arr.description != null)
+                  return (
+                    arr.tag_id.toLowerCase().indexOf(inputTag) != -1 ||
+                    (arr.description
+                      ? arr.description.toLowerCase().indexOf(inputTag) != -1
+                      : '')
+                  );
+              });
+              root.tagSearchResult = filteredAssets;
+              root.totalResults = filteredAssets.length;
+            }
+          } else {
+            root.tagSearchResult = false;
+          }
+        });
+      },
+    
+      _getRandomColor: function (str) {
+        let i = 0,
+          hash = 0;
+        for (
+          i = 0, hash = 0;
+          i < str.length;
+          hash = str.charCodeAt(i++) + ((hash << 5) - hash)
+        );
+        const color = Math.floor(
+          Math.abs(((Math.sin(hash) * 10000) % 1) * 16777216)
+        ).toString(16);
+        return '#' + new Array(6 - color.length + 1).join('0') + color;
+      },
+    
+      _unitConvertor: function (unit) {
+        if (unit != null) {
+          return unit;
+        } else {
+          return '';
+        }
+      },
+    
+      _onResponse_getTagTrends: function (e) {
+        var root = this;
+        var chart = this.chart;
+        var legIndex;
+        var tagName = null;
+        tagName = e.detail.url
+          .split('/getTagTrends/')[1]
+          .split('/')[0]
+          .slice(window.organization_id.length + 1);
+        if (e.detail.response.data) {
+          if (!root._isEmptyCheck(root.woModuleInputs) && tagName) {
+            if (root.woModuleInputs.settings.tagAxes) {
+              var index = root.woModuleInputs.settings.tagAxes.findIndex(
+                (item) => item.tagName.toUpperCase() === tagName.toUpperCase()
+              );
+              legIndex = index ? index : null;
+            }
+          }
+          root.colorCode = this._getRandomColor(tagName);
+          var series = {
+            type: 'line',
+            connectNulls: true,
+            id: tagName + '_ta',
+            name: tagName,
+            showFirstLabel: true,
+            showLastLabel: true,
+            endOnTick: true,
+            unit: root._unitConvertor(e.detail.response.config.unit),
+            data: e.detail.response.data,
+            showInNavigator: true,
+            color: root.colorCode,
+            yAxis: tagName + '_ta',
+            legendIndex: index,
+            visible: true,
+          };
+          var yAxis = chart.addAxis(
+            {
+              id: tagName + '_ta',
+              name: tagName,
+              lineColor: root.colorCode,
+              lineWidth: 0,
+              title: {
+                text: '',
+                enabled: false,
+              },
+              labels: {
+                style: {
+                  color: root.colorCode,
+                },
+              },
+              opposite: false,
+            },
+            false,
+            false
+          );
+          chart.addSeries(series, true);
+        } else {
+          root.trendAlerts = e.detail.response.status;
+          this.async(function () {
+            root.trendAlerts = false;
+          }, 5000);
+        }
+
+        chart.redraw();
+
+        if (!root._isEmptyCheck(root.woModuleInputs) && tagName) {
+          if (root.woModuleInputs.settings.tagAxes) {
+            var Yindex;
+            for (var x = 0; x < chart.yAxis.length; x++) {
+              if (chart.yAxis[x].userOptions.hasOwnProperty('id'))
+                if (chart.yAxis[x].userOptions.name === tagName.toUpperCase()) {
+                  Yindex = x;
+                }
+            }
+            var index = root.woModuleInputs.settings.tagAxes.findIndex(
+              (item) => item.tagName === tagName
+            );
+            var tag = root.woModuleInputs.settings.tagAxes[index];
+            // chart.get(tag.tagName).yAxis.setExtremes(tag.Axes[0], tag.Axes[1])
+            if (index > -1)
+              chart.yAxis[Yindex].update(
+                {
+                  floor: Number(tag.Axes[0]),
+                  ceiling: Number(tag.Axes[1]),
+                  softMin: Number(tag.Axes[0]),
+                  softMax: Number(tag.Axes[1]),
+                },
+                false
+              );
+            for (
+              var i = 0;
+              i < root.woModuleInputs.settings.active_tag.length;
+              i++
+            ) {
+              chart.update(
+                {
+                  yAxis:
+                    root.woModuleInputs.settings.active_tag[index].tag_name +
+                    '_ta_Yaxis',
+                },
+                false
+              );
+            }
+            chart.redraw();
+          }
+        }
+      },
+    
+      _onModulInputChange: function () {
+        var root = this;
+        // console.log(root.woModuleInputs);
+        var inputs = root.woModuleInputs;
+        if (!root._isEmptyCheck(root.woModuleInputs))
+          if (root.woModuleInputs.module === 'Trend Search') {
+            root.updateFormInputs = true;
+            root.usersAccessCheck = false;
+
+            root.async(function () {
+              $(root.querySelector('#firstLayerUsers')).select2();
+
+              $(root.querySelector('#firstLayerUsers')).trigger('change');
+              $(root.querySelector('#secondLayerUsers')).select2();
+
+              $(root.querySelector('#secondLayerUsers')).trigger('change');
+            });
+            root.woNameValue = inputs.workflow_name;
+            root.woDescValue = inputs.description;
+            if (inputs.share_status == 'Priavte') {
+              root.usersAccessCheck = false;
+            }
+            if (inputs.share_status == 'Shared') {
+              root.usersAccessCheck = true;
+              root.owner = inputs.owner;
+            }
+            root.startDateRange = inputs.settings.start_date;
+            root.endDateRange = inputs.settings.end_date;
+            for (var i = 0; i < inputs.settings.active_tag.length; i++) {
+              if (
+                !(
+                  root.tagInsertedList.indexOf(
+                    inputs.settings.active_tag[i].tag_id
+                  ) !== -1
+                )
+              ) {
+                root.tagList.push({
+                  tag_id: inputs.settings.active_tag[i].tag_id,
+                  tag_name: inputs.settings.active_tag[i].tag_name,
+                  description: inputs.settings.active_tag[i].description,
+                });
+                root.tagInsertedList.push(inputs.settings.active_tag[i].tag_id);
+                root._getTrends(inputs.settings.active_tag[i].tag_id, true);
+                root.$.e_recentTag.generateRequest();
+              }
+            }
+            var activetagList = JSON.stringify(root.tagList);
+            root.activetagDataList = JSON.parse(activetagList);
+            // root.recenttagDataList = false;
+            root._loadDateRange(true);
+            // root.$.getUserResourcesWorkflow.body = {
+            //   resource_url:
+            //     'trendAnalysis_workflowOrganizer-' +
+            //     window.organization_id.toLowerCase() +
+            //     '-' +
+            //     root.woModuleInputs.workflow_name
+            //       .toLowerCase()
+            //       .replace(/\s+/g, '')
+            //       .replace('-', '_'),
+            // };
+            // root.$.getUserResourcesWorkflow.generateRequest();
+            root.async(function () {
+              $(root.querySelector('#firstLayerUsersEdit')).select2();
+
+              $(root.querySelector('#firstLayerUsersEdit')).trigger('change');
+              $(root.querySelector('#secondLayerUsersEdit')).select2();
+
+              $(root.querySelector('#secondLayerUsersEdit')).trigger('change');
+            });
+          }
+      },
+    
+      _saveNewWorkOrganizer: function (e) {
+        var root = this;
+
+        if (root.updateFormInputs) {
+          root.updateFormInputs = false;
+          root.usersAccessCheck = false;
+          root.addConditionalFilter = false;
+          root.async(function () {
+            const el = $(root.querySelector('#firstLayerUsers'));
+            if (el) {
+              el.select2();
+              el.trigger('change');
+            }
+          });
+        } else {
+          root.updateFormInputs = true;
+          root.usersAccessCheck = true;
+          root.addConditionalFilter = true;
+
+          root.async(function () {
+            $(_root.querySelector('#_users_addEdit')).select2();
+
+            $(_root.querySelector('#_users_addEdit')).trigger('change');
+          });
+        }
+        if (root.usersAccessCheck) {
+        } else {
+        }
+      },
+    
+      _returnAxesDetail: function () {
+        var root = this;
+        var tagAxes = [];
+        var chart = this.chart;
+        if (root.tagList.length > 0) {
+          for (var i = 0; i < root.tagList.length; i++) {
+            // if (chart.get(root.tagList[i].tag_name)) {
+            var index;
+            for (var x = 0; x < chart.yAxis.length; x++) {
+              if (chart.yAxis[x].userOptions.hasOwnProperty('id'))
+                if (
+                  chart.yAxis[x].userOptions.name ===
+                  root.tagList[i].tag_name.toUpperCase()
+                ) {
+                  index = x;
+                }
+            }
+            var axesExtremes = chart.yAxis[index].getExtremes();
+            // var axesExtremes = chart.get(root.tagList[i].tag_name).yAxis.getExtremes();
+            tagAxes.push({
+              tagName: root.tagList[i].tag_name,
+              Axes: [axesExtremes.min, axesExtremes.max],
+              tagColor: chart.yAxis[index].userOptions.lineColor,
+            });
+            // }
+          }
+          return tagAxes;
+        }
+      },
+    
+      _saveToWorkOrganizer: function () {
+        var root = this;
+        var shareStatus;
+        var UserList = [];
+        var ShareType = [];
+
+        // if (root.querySelector('#userAccess_check').checked) {
+        //   shareStatus = 'Shared';
+        //   UserList = [String(window.user_id)];
+        //   ShareType = ['EDIT'];
+        //   var _users_addGroup = $(root.querySelector('#firstLayerUsers')).select2(
+        //     'data'
+        //   );
+        //   for (var i = 0; i < _users_addGroup.length; i++) {
+        //     UserList.push(String(_users_addGroup[i].id));
+        //     if (UserList.length > 1) {
+        //       ShareType.push(root.querySelector('#firstLayerUsersAccess').value);
+        //     }
+        //   }
+        //   // console.log('cond====', root.addConditionalFilter);
+        //   // if (root.addConditionalFilter) {
+        //   var _users_addGroup2 = $(root.querySelector('#secondLayerUsers')).select2(
+        //     'data'
+        //   );
+        //   for (var i = 0; i < _users_addGroup2.length; i++) {
+        //     UserList.push(String(_users_addGroup2[i].id));
+        //     if (UserList.length > 1) {
+        //       ShareType.push(root.querySelector('#secondLayerUsersAccess').value);
+        //     }
+        //   }
+        //   // }
+        // } else {
+        //   shareStatus = 'Private';
+        //   UserList = [String(window.user_id)];
+        //   ShareType = ['EDIT'];
+        // }
+
+        // let hasDuplicate = UserList.some((val, i) => UserList.indexOf(val) !== i);
+        // if (hasDuplicate) {
+        //   root._status_wo = 'Duplicate user found';
+        //   root.async(function () {
+        //     root._status_wo = false;
+        //   }, 5000);
+        // } else if (!hasDuplicate) {
+          $('#confirmWO').modal('hide');
+          var inputs = document.querySelector('#woFormInputs').elements;
+          if (inputs[0].value) {
+            if (root.tagList.length > 0) {
+              let workOrganizerInputs = {
+                // org_id: window.organization_id,
+                workflow_name: inputs[0].value,
+                module: 'Trend Search',
+                description: inputs[1].value ? inputs[1].value : '',
+                timezone_minute: Number(window.current_server_time),
+                // owner: window.user_id,
+                share_status: shareStatus,
+                settings: {
+                  start_date: moment(root.startDateRange).format(
+                    'YYYY-MM-DD HH:mm:ss'
+                  ),
+                  end_date: moment(root.endDateRange).format('YYYY-MM-DD HH:mm:ss'),
+                  active_tag: root.tagList,
+                  enable_tags: root.tagInsertedList,
+                  tagAxes: root._returnAxesDetail(),
+                },
+              };
+
+              root.previousWorkFlowName = inputs[0].value;
+              root.previousWorkFlowDesc = inputs[1].value ? inputs[1].value : '';
+              root.$.addWorkOrganizer.body = workOrganizerInputs;
+              root.$.addWorkOrganizer.generateRequest();
+
+              // root.bodyData = {
+              //   workflow_name: inputs[0].value,
+              //   UserList: UserList,
+              //   ShareType: ShareType,
+              // };
+              // root._saveAttributeResource('add');
+            } else {
+              root.trendAlerts = 'Work Organizer Active Tag List Empty!';
+              this.async(function () {
+                root.trendAlerts = false;
+              }, 5000);
+            }
+          } else {
+            root.trendAlerts = 'Work Organizer Name can not be Empty!';
+            this.async(function () {
+              root.trendAlerts = false;
+            }, 5000);
+          }
+        // }
+      },
+    
+      _saveAttributeResource: function (state) {
+        var root = this;
+
+        var inputs = document.querySelector('#woFormInputs').elements;
+        var firstLayerusersArr = [];
+        var _users_addFirstLayer = $(root.querySelector('#firstLayerUsers')).select2(
+          'data'
+        );
+        if (_users_addFirstLayer)
+          for (var i = 0; i < _users_addFirstLayer.length; i++) {
+            firstLayerusersArr.push(String(_users_addFirstLayer[i].id));
+          }
+        var secondLayerusersArr = [];
+        var _users_addSecondLayer = $(
+          root.querySelector('#secondLayerUsers')
+        ).select2('data');
+        if (_users_addSecondLayer)
+          for (var i = 0; i < _users_addSecondLayer.length; i++) {
+            secondLayerusersArr.push(String(_users_addSecondLayer[i].id));
+          }
+        secondLayerusersArr.push(String(window.user_id));
+        var duplicates = firstLayerusersArr.filter(function (val) {
+          return secondLayerusersArr.indexOf(val) != -1;
+        });
+        if (duplicates.length > 0) {
+          root._status_wo = 'Duplicate user found';
+          root.async(function () {
+            root._status_wo = false;
+          }, 5000);
+        } else {
+          // console.log('usersArr', firstLayerusersArr, secondLayerusersArr);
+          var vnames = firstLayerusersArr;
+          var uniquefirstLayerusersArr = [];
+          $.each(vnames, function (i, el) {
+            if ($.inArray(el, uniquefirstLayerusersArr) === -1)
+              uniquefirstLayerusersArr.push(el);
+          });
+          var enames = secondLayerusersArr;
+          var uniquesecondLayerusersArr = [];
+          $.each(enames, function (i, el) {
+            if ($.inArray(el, uniquesecondLayerusersArr) === -1)
+              uniquesecondLayerusersArr.push(el);
+          });
+          var resource = inputs[0].value
+            .toLowerCase()
+            .replace(/\s+/g, '')
+            .replace('-', '_');
+
+          workFlowAttributeDetails = {
+            // user_id: window.user_id,
+            workflow_name: inputs[0].value,
+            resource_url:
+              'trendAnalysis_workflowOrganizer-' +
+              window.organization_id.toLowerCase() +
+              '-' +
+              resource,
+            resource_name:
+              'trendAnalysis_workflowOrganizer-' +
+              window.organization_id.toLowerCase() +
+              '-' +
+              resource,
+            description: inputs[1].value,
+            method: 'GET',
+            workflow_view: uniquefirstLayerusersArr,
+            workflow_edit: uniquesecondLayerusersArr,
+          };
+          if (state === 'add') {
+            root.$.addUserResourcesWorkflow.body = workFlowAttributeDetails;
+            root.$.addUserResourcesWorkflow.generateRequest();
+          }
+          if (state === 'update') {
+            root.$.updateUserResourcesWorkflow.body = workFlowAttributeDetails;
+            root.$.updateUserResourcesWorkflow.generateRequest();
+          }
+        }
+      },
+    
+      _onResponse_addUserResourcesWorkflow: function (e) {
+        var root = this;
+        if (e.detail.status) {
+          root.updateFormInputs = true;
+          root.trendAlerts = e.detail.response.status;
+          root.async(function () {
+            root.trendAlerts = false;
+          }, 5000);
+        }
+        root.$.getWorkFlow.generateRequest();
+      },
+    
+      _updateWorkOrganizer: function () {
+        var root = this;
+        var shareStatus;
+        var UserList = [];
+        var ShareType = [];
+        $('#confirmWO').modal('hide');
+        // UserList = [String(window.user_id)];
+        // var _users_addGroup = $(root.querySelector('#firstLayerUsers')).select2(
+        //   'data'
+        // );
+        // for (var i = 0; i < _users_addGroup.length; i++) {
+        //   UserList.push(String(_users_addGroup[i].id));
+        // }
+        // var _users_addGroup2 = $(root.querySelector('#secondLayerUsers')).select2(
+        //   'data'
+        // );
+        // for (var i = 0; i < _users_addGroup2.length; i++) {
+        //   UserList.push(String(_users_addGroup2[i].id));
+        // }
+        // let hasDuplicate = UserList.some((val, i) => UserList.indexOf(val) !== i);
+        // if (hasDuplicate) {
+        //   root.trendAlerts = 'Duplicate user found';
+        //   root.async(function () {
+        //     root.trendAlerts = false;
+        //   }, 5000);
+        // } else if (!hasDuplicate) {
+          var inputs = document.querySelector('#woFormInputs').elements;
+          if (inputs[0].value) {
+            if (root.tagList.length > 0) {
+              let workOrganizerInputs = {
+                // org_id: window.organization_id,
+                workflow_id: !root._isEmptyCheck(root.woModuleInputs)
+                  ? root.woModuleInputs.workflow_id
+                  : root.workFlowID,
+                workflow_name: !root._isEmptyCheck(root.woModuleInputs)
+                  ? root.woModuleInputs.workflow_name
+                  : root.woNameValue,
+                module: 'Trend Search',
+                description: inputs[1].value ? inputs[1].value : root.woDescValue,
+                timezone_minute: Number(window.current_server_time),
+                settings: {
+                  start_date: moment(root.startDateRange).format(
+                    'YYYY-MM-DD HH:mm:ss'
+                  ),
+                  end_date: moment(root.endDateRange).format('YYYY-MM-DD HH:mm:ss'),
+                  active_tag: root.tagList,
+                  enable_tags: root.tagInsertedList,
+                  tagAxes: root._returnAxesDetail(),
+                },
+              };
+              root.$.updateWorkOrganizer.body = workOrganizerInputs;
+              root.$.updateWorkOrganizer.generateRequest();
+              // root._saveAttributeResource('update');
+            } else {
+              root.trendAlerts = 'Work Organizer Active Tag List Empty!';
+              this.async(function () {
+                root.trendAlerts = false;
+              }, 5000);
+            }
+          } else {
+            root.trendAlerts = 'Work Organizer Name can not be Empty!';
+            this.async(function () {
+              root.trendAlerts = false;
+            }, 5000);
+          }
+        // }
+      },
+    
+      _onResponse_updateWorkOrganizer: function (e) {
+        var root = this;
+        if (e.detail.response.status) {
+          root.updateFormInputs = true;
+          root.trendAlerts = e.detail.response.status;
+          root.async(function () {
+            root.trendAlerts = false;
+          }, 5000);
+          var response = e.detail.response.status;
+          // if (response.includes('successful')) root._saveAttributeResource('update');
+        }
+        root.$.getWorkFlow.generateRequest();
+      },
+    
+      _onResponse_addWorkOrganizer: function (e) {
+        var root = this;
+        if (e.detail.status) {
+          root.updateFormInputs = false;
+          root.updateFormInputs = true;
+          // root.$.woFormInputs.reset()
+          root.woModuleInputs = null;
+          root.trendAlerts = e.detail.response.status;
+          root.async(function () {
+            root.trendAlerts = false;
+          }, 5000);
+        }
+        // if (e.detail.response.status.includes('success')) { root._saveAttributeResource('add'); }
+      },
+    
+      _onResponse_addWorkflowDetail: function (e) {
+        var root = this;
+        if (e.detail.response.Status) {
+          root.updateFormInputs = false;
+          root.updateFormInputs = true;
+          // root.$.woFormInputs.reset()
+          root.woModuleInputs = null;
+          root.trendAlerts = e.detail.response.Status;
+          root.async(function () {
+            root.trendAlerts = false;
+          }, 5000);
+        }
+        root.$.getWorkFlow.generateRequest();
+      },
+    
+      _onResponse_getWorkFlow: function (e) {
+        var root = this;
+        if (document.querySelector('#NewWorkOrganizer'))
+          document.querySelector('#NewWorkOrganizer').checked = false;
+        //
+        var workFlowList = e.detail.response;
+        for (var i = 0; i < workFlowList.length; i++) {
+          if (root.previousWorkFlowName == workFlowList[i].workflow_name) {
+            root.workFlowID = workFlowList[i].workflow_id;
+            root.woNameValue = root.previousWorkFlowName;
+            root.woDescValue = root.previousWorkFlowDesc;
+            root.updateFormInputs = true;
+          }
+        }
+      },
+    
+      _isEmptyCheck(obj) {
+        // return true on empty and false if it has any data
+        for (var key in obj) {
+          if (obj.hasOwnProperty(key)) return false;
+        }
+        return true;
+      },
+    
+      _onResponse_recenttagDataList: function (e) {
+        var root = this;
+        var inputs = root.woModuleInputs;
+        var state = root._isEmptyCheck(inputs);
+
+        if (!state) {
+          for (var i = 0; i < inputs.settings.active_tag.length; i++) {
+            root._filterList(
+              root.recenttagDataList,
+              inputs.settings.active_tag[i].tag_id
+            );
+          }
+          // root.activetagDataList = root._filterActiveList(root.activetagDataList, "tag_id");
+        } else {
+          if (root.tagInsertedList > 0) {
+            for (var i = 0; i < root.tagInsertedList.length; i++) {
+              root._filterList(root.recenttagDataList, root.tagInsertedList[i]);
+            }
+          } else {
+            if (typeof e.detail.response === 'object' && e.detail.response.status === "No tags found"){
+              root.recenttagDataList = []
+            } else {
+              root.recenttagDataList = e.detail.response;
+            }
+          }
+        }
+      },
+    
+      _dismissWorkOrganizer: function () {
+        var root = this;
+
+        // if (document.querySelector('#woName').value) {
+        if (root.woNameValue) {
+          root.updateFormInputs = true;
+        } else {
+          root.updateFormInputs = false;
+        }
+        root.usersAccessCheck = false;
+        root.addConditionalFilter = false;
+        if (document.querySelector('#NewWorkOrganizer'))
+          document.querySelector('#NewWorkOrganizer').checked = false;
+        // }
+      },
+    
+      _onError: function (e) {
+        // e.target.generateRequest();
+      },
+    
+      _dismissAlert: function () {
+        root = this;
+        root.trendAlerts = false;
+      },
+    
+      _chartTypeChange: function (e) {
+        var chart = this.chart;
+        var actualApprox = chart.series[0].options.dataGrouping.approximation,
+          thisApprox = e.currentTarget.value.toString(),
+          availableAproxes = [
+            'average',
+            'averages',
+            'open',
+            'high',
+            'low',
+            'close',
+            'sum',
+            'ohlc',
+            'range',
+          ];
+
+        if (actualApprox !== thisApprox && availableAproxes.includes(thisApprox)) {
+          chart.series[0].update({
+            dataGrouping: {
+              approximation: thisApprox,
+            },
+          });
+        }
+      },
+    
+      _trendPlotChangeCheck: function (e) {
+        var chart = this.chart;
+        chart.update({
+          chart: {
+            type: 'scatter',
+          },
+          plotOptions: {
+            series: {
+              marker: {
+                radius: 8,
+              },
+            },
+          },
+          series: {
+            type: 'scatter',
+            visible: true,
+            connectNulls: false,
+          },
+        });
+      },
+    
+      _gtagEvent: function () {
+        var _root = this;
+      
+
+        $(_root.querySelector('#firstLayerUsers')).select2();
+        _root.async(function () {
+          $(_root.querySelector('#firstLayerUsers')).trigger('change');
+        }, 2500);
+
+        $(_root.querySelector('#secondLayerUsers')).select2();
+
+        $(_root.querySelector('#secondLayerUsers')).trigger('change');
+      },
+    
+      _gtagEventInfo: function () {
+      
+      },
+    
+      _checkWOAccess: function (name) {
+        var root = this;
+        for (var i = 0; i < root.getWorkFlowList.length; i++) {
+          if (
+            root.getWorkFlowList[i].workflow_name.toLowerCase() ===
+            name.toLowerCase()
+          ) {
+            return root.getWorkFlowList[i].workflow_edit;
+          }
+        }
+      },
+    
+    });
+  </script>
+</dom-module>

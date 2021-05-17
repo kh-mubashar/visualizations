@@ -1,0 +1,103 @@
+<link rel="import" href="../../../bower_components/polymer/polymer.html"/>
+<dom-module id="tags-categories-form">
+  <template>
+    <style></style>
+    <template is="dom-repeat" items="{{tagsCategories}}" as="tag" restamp>
+      <div>
+        <div>
+          <label class="col-form-label py-1">Category [[_incrNumber(index)]]</label>
+        </div>
+        <div class="d-flex mb-2">
+          <input
+              list="tagListDropdown"
+              class="form-control"
+              placeholder="Search/Add Tags"
+              autocomplete="off"
+              data-index$="[[index]]"
+              value$="[[tag.tag]]"
+              on-change="_changeTag"
+              required
+          />
+          <input
+              class="form-control ml-2"
+              placeholder="Write Label"
+              autocomplete="off"
+              maxlength="32"
+              pattern="[0-9a-zA-Z-_]+([\s][0-9a-zA-Z-_]+)*"
+              value$="[[tag.label]]"
+              index="[[index]]"
+              data-index$="[[index]]"
+              on-input="_changeTagLabel"
+          />
+          <template is="dom-if" if="[[_showRemove(tagsCategories.length)]]">
+            <i data-index$="[[index]]"
+               class="fas fa-times-circle text-dark p-2 mb-1 cursor-pointer"
+               title="Remove category"
+               on-click="_removeCategory">
+            </i>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <div class="form-group mt-4 cursor-pointer" on-click="_incrCategories">
+      <i class="fas fa-plus-circle form-icon"></i>
+      <span class="p-1 font-weight-bold">Add Category</span>
+    </div>
+
+    <datalist id="tagListDropdown" restamp>
+      <template is="dom-repeat" items="{{tagList}}" as="item" restamp>
+        <option value="[[item.tag_name]]">[[item.description]]</option>
+      </template>
+    </datalist>
+
+  </template>
+
+  <script>
+    Polymer({
+      is: 'tags-categories-form',
+      properties: {
+        tagsCategories: {
+          type: Array,
+          value: [{ tag:'', label: '' }],
+        },
+      },
+      _changeTagLabel(e) {
+        const {dataset: { index}, value} = e.target
+        this.set(`tagsCategories.${index}.label`, value)
+        this._onChangeCategories()
+      },
+      _changeTag(e) {
+        const {dataset: { index }, value} = e.target
+        this.set(`tagsCategories.${index}.tag`, value)
+        this._onChangeCategories()
+      },
+      _incrCategories() {
+        if (this._isInvalid()) return
+        this.push('tagsCategories', { tag: '', label: '' })
+        this._onChangeCategories()
+      },
+      _isInvalid() {
+        this.fire('validate')
+        return _.some(this.tagsCategories, category => {
+          const tag = _.get(category, 'tag')
+          return _.isEmpty(tag)
+        })
+      },
+      _onChangeCategories(){
+        this.fire('change-categories', _.cloneDeep(this.tagsCategories))
+      },
+      _incrNumber(n) {
+        return n + 1
+      },
+      _showRemove(len) {
+        return len > 1
+      },
+      _removeCategory(e) {
+        const {dataset: {index}} = e.currentTarget
+        this.splice('tagsCategories', index, 1)
+        this._onChangeCategories()
+      },
+    })
+  </script>
+</dom-module>
